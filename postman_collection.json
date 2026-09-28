@@ -1,0 +1,182 @@
+{
+  "info": {
+    "_postman_id": "6b8c0c3a-8476-4c9f-8d32-1d5d7a6d5d78",
+    "name": "WebNauAn API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  if (json && json.data && json.data.token) {",
+              "    pm.collectionVariables.set(\"token\", json.data.token);",
+              "  }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/login"
+      },
+      "response": [
+        {
+          "name": "Login Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/login"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Login success\",\n  \"data\": {\n    \"token\": \"<JWT>\",\n    \"user\": {\n      \"id\": 1,\n      \"username\": \"admin\",\n      \"email\": \"admin@example.com\",\n      \"full_name\": \"Administrator\",\n      \"fullName\": \"Administrator\",\n      \"phone\": null,\n      \"address\": null,\n      \"bio\": null,\n      \"cuisine_preferences\": null,\n      \"cuisinePreferences\": null,\n      \"daily_budget\": null,\n      \"dailyBudget\": null,\n      \"role\": \"admin\",\n      \"is_verified\": true,\n      \"created_at\": \"2026-05-12T00:00:00.000Z\",\n      \"updated_at\": \"2026-05-12T00:00:00.000Z\"\n    }\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "User - Get Profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/user/profile"
+      },
+      "response": [
+        {
+          "name": "Get Profile Success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/user/profile"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Get profile success\",\n  \"data\": {\n    \"id\": 1,\n    \"username\": \"admin\",\n    \"email\": \"admin@example.com\",\n    \"full_name\": \"Administrator\",\n    \"fullName\": \"Administrator\",\n    \"phone\": \"0901234567\",\n    \"address\": null,\n    \"bio\": \"Healthy meals\",\n    \"cuisine_preferences\": [\"Vietnamese\", \"Italian\"],\n    \"cuisinePreferences\": [\"Vietnamese\", \"Italian\"],\n    \"daily_budget\": 50000,\n    \"dailyBudget\": 50000,\n    \"role\": \"admin\",\n    \"is_verified\": true,\n    \"created_at\": \"2026-05-12T00:00:00.000Z\",\n    \"updated_at\": \"2026-05-12T00:00:00.000Z\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "User - Update Profile",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Administrator\",\n  \"phone\": \"0901234567\",\n  \"bio\": \"Healthy meals\",\n  \"cuisinePreferences\": [\"Vietnamese\", \"Italian\"],\n  \"dailyBudget\": 50000\n}"
+        },
+        "url": "{{baseUrl}}/user/profile"
+      },
+      "response": [
+        {
+          "name": "Update Profile Success",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Administrator\",\n  \"phone\": \"0901234567\",\n  \"bio\": \"Healthy meals\",\n  \"cuisinePreferences\": [\"Vietnamese\", \"Italian\"],\n  \"dailyBudget\": 50000\n}"
+            },
+            "url": "{{baseUrl}}/user/profile"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Update profile success\",\n  \"data\": {\n    \"id\": 1,\n    \"username\": \"admin\",\n    \"email\": \"admin@example.com\",\n    \"full_name\": \"Administrator\",\n    \"fullName\": \"Administrator\",\n    \"phone\": \"0901234567\",\n    \"address\": null,\n    \"bio\": \"Healthy meals\",\n    \"cuisine_preferences\": [\"Vietnamese\", \"Italian\"],\n    \"cuisinePreferences\": [\"Vietnamese\", \"Italian\"],\n    \"daily_budget\": 50000,\n    \"dailyBudget\": 50000,\n    \"role\": \"admin\",\n    \"is_verified\": true,\n    \"created_at\": \"2026-05-12T00:00:00.000Z\",\n    \"updated_at\": \"2026-05-12T00:00:00.000Z\"\n  }\n}"
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "username",
+      "value": "admin"
+    },
+    {
+      "key": "password",
+      "value": "admin123"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ]
+}
