@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import api from "../services/api";
+import api, { getImageUrl } from "../services/api";
 
 const QUICK_INGREDIENTS = [
   "Trứng gà", "Cà chua", "Thịt heo", "Thịt bò", "Thịt gà",
@@ -10,7 +11,14 @@ const QUICK_INGREDIENTS = [
 ];
 
 const SmartFridgePage = () => {
-  const [fridgeItems, setFridgeItems] = useState([]);
+  const [fridgeItems, setFridgeItems] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("fridgeItems") || "[]");
+      return Array.isArray(saved) ? saved
+        .map(item => typeof item === "string" ? { name: item, quantity: "" } : item)
+        .filter(item => item && typeof item.name === "string") : [];
+    } catch { return []; }
+  });
   const [inputValue, setInputValue] = useState("");
   const [inputQuantity, setInputQuantity] = useState("");
   const [peopleCount, setPeopleCount] = useState(2);
@@ -21,17 +29,6 @@ const SmartFridgePage = () => {
   const [globalShoppingList, setGlobalShoppingList] = useState([]);
   const [activeRecipe, setActiveRecipe] = useState(null);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    const savedItems = localStorage.getItem("fridgeItems");
-    if (savedItems) {
-      try { 
-        const parsed = JSON.parse(savedItems);
-        const normalized = parsed.map(item => typeof item === 'string' ? { name: item, quantity: '' } : item);
-        setFridgeItems(normalized); 
-      } catch (e) { /* ignore */ }
-    }
-  }, []);
 
   const saveToLocalStorage = (items) => localStorage.setItem("fridgeItems", JSON.stringify(items));
 
@@ -84,6 +81,8 @@ const SmartFridgePage = () => {
     setFridgeItems([]);
     localStorage.removeItem("fridgeItems");
     setSuggestions([]);
+    setGlobalShoppingList([]);
+    setActiveRecipe(null);
   };
 
   const handleAutoDistribute = async (timeLimitMinutes, currentPeople = peopleCount) => {
@@ -134,6 +133,8 @@ const SmartFridgePage = () => {
       setLoading(true);
       setError("");
       setSuggestions([]);
+      setGlobalShoppingList([]);
+      setActiveRecipe(null);
       const complexityStr = `Yêu cầu phân bổ đúng độ khó: ${dishDistribution.easy} món dễ, ${dishDistribution.medium} món trung bình, ${dishDistribution.hard} món khó.`;
       
       const response = await api.post("/api/ai/fridge-suggest", {
@@ -430,9 +431,12 @@ const SmartFridgePage = () => {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", borderRadius: 12, padding: "12px 20px", border: "1px solid rgba(225,191,183,0.1)", marginBottom: 16, boxShadow: "0 2px 8px rgba(72,72,72,0.04)" }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "#1b1c1c", display: "flex", alignItems: "center", gap: 6 }}>
                   <span className="material-symbols-outlined text-primary" style={{ fontSize: 20 }}>auto_awesome</span>
-                  AI gợi ý {suggestions.length} món ăn từ tủ lạnh
+                  Gợi ý {suggestions.length} món ăn từ tủ lạnh
+                  {suggestions.some(recipe => recipe.source === "culinshare") && (
+                    <span className="text-primary"> · Ưu tiên công thức CulinShare</span>
+                  )}
                 </span>
-                <button onClick={() => setSuggestions([])} style={{ fontSize: 12, fontWeight: 700, color: "#665e49", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                <button onClick={() => { setSuggestions([]); setGlobalShoppingList([]); }} style={{ fontSize: 12, fontWeight: 700, color: "#665e49", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 14 }}>refresh</span> Xóa
                 </button>
               </div>
@@ -453,7 +457,26 @@ const SmartFridgePage = () => {
               {/* Grid món ăn */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
                 {suggestions.map((recipe, index) => (
-                  <div key={index} style={{ background: "#fff", borderRadius: 16, border: "1px solid rgba(225,191,183,0.15)", padding: 20, boxShadow: "0 4px 20px rgba(72,72,72,0.06)", display: "flex", flexDirection: "column", transition: "all 0.2s" }}>
+                  <div key={recipe.recipeId ? `recipe-${recipe.recipeId}` : `ai-${index}`} style={{ background: "#fff", borderRadius: 16, border: "1px solid rgba(225,191,183,0.15)", padding: 20, boxShadow: "0 4px 20px rgba(72,72,72,0.06)", display: "flex", flexDirection: "column", transition: "all 0.2s" }}>
+
+                    {recipe.source === "culinshare" ? (
+                      <>
+                        {recipe.coverImageUrl && (
+                          <Link to={`/recipe/${recipe.recipeId}`}>
+                            <img src={getImageUrl(recipe.coverImageUrl)} alt={recipe.name} loading="lazy" className="w-full h-40 object-cover rounded-xl mb-3" />
+                          </Link>
+                        )}
+                        <div className="flex flex-wrap gap-2 mb-2 text-xs font-bold">
+                          <span className="rounded-full bg-primary/10 text-primary px-2 py-1">Có trên CulinShare</span>
+                          {recipe.matchType === "similar" && <span className="rounded-full bg-amber-50 text-amber-800 px-2 py-1">Công thức tương tự</span>}
+                        </div>
+                        <p className="text-xs text-secondary mb-2">Bởi {recipe.authorName || "Thành viên CulinShare"}</p>
+                        {recipe.matchType === "similar" && <p className="text-xs text-secondary mb-2">Phù hợp với gợi ý: {recipe.suggestedName}</p>}
+                        <p className="text-xs text-secondary mb-2">
+                          {recipe.quantityNeedsReview ? "Công thức chưa có khẩu phần gốc; cần kiểm tra định lượng." : `Nguyên liệu đã quy đổi cho ${recipe.servings} người. Xem khẩu phần gốc trong bài viết.`}
+                        </p>
+                      </>
+                    ) : <span className="text-xs text-secondary mb-2">Gợi ý từ AI</span>}
 
                     {/* Tên + Độ khó */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
@@ -496,6 +519,7 @@ const SmartFridgePage = () => {
                           Từ tủ lạnh:
                         </p>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                          {!recipe.fridgeIngredientsUsed?.length && <span className="text-xs text-secondary">Chưa xác định được nguyên liệu có sẵn phù hợp.</span>}
                           {recipe.fridgeIngredientsUsed?.map((ing, idx) => (
                             <span key={idx} style={{ fontSize: 11, background: "#dcfce7", color: "#166534", padding: "2px 8px", borderRadius: 12 }}>{ing}</span>
                           ))}
@@ -518,7 +542,12 @@ const SmartFridgePage = () => {
                     </div>
 
                     {/* Nút xem chi tiết */}
-                    <button
+                    {recipe.source === "culinshare" ? (
+                      <Link to={`/recipe/${recipe.recipeId}`} className="w-full py-3 bg-primary text-white rounded-xl text-center font-bold text-sm flex items-center justify-center gap-2">
+                        <span className="material-symbols-outlined text-base">menu_book</span>
+                        Xem công thức trên CulinShare
+                      </Link>
+                    ) : <button
                       onClick={() => setActiveRecipe(recipe)}
                       style={{ width: "100%", padding: "10px 0", background: "#f5f3f3", border: "1px solid rgba(225,191,183,0.25)", borderRadius: 12, color: "#ab2e10", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s" }}
                       onMouseEnter={(e) => { e.target.style.background = "#ab2e10"; e.target.style.color = "#fff"; e.target.style.borderColor = "#ab2e10"; }}
@@ -526,7 +555,7 @@ const SmartFridgePage = () => {
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: 16 }}>menu_book</span>
                       Xem hướng dẫn nấu chi tiết
-                    </button>
+                    </button>}
                   </div>
                 ))}
               </div>

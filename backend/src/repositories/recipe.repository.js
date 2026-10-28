@@ -1,6 +1,28 @@
 const pool = require('../config/database');
 
 class RecipeRepository {
+    async findPublishedForMatching() {
+        const [recipes] = await pool.query(`
+            SELECT r.id, r.title, r.description, r.cover_image_url, r.servings,
+                   r.prep_time_minutes, r.cook_time_minutes, r.difficulty,
+                   u.full_name AS author_name
+            FROM recipes r LEFT JOIN users u ON u.id = r.author_id
+            WHERE r.status = 'published'
+            ORDER BY r.id ASC
+        `);
+        const [ingredients] = await pool.query(`
+            SELECT i.recipe_id, i.name, i.quantity, i.unit
+            FROM recipe_ingredients i JOIN recipes r ON r.id = i.recipe_id
+            WHERE r.status = 'published' ORDER BY i.id ASC
+        `);
+        const grouped = new Map();
+        for (const ingredient of ingredients) {
+            if (!grouped.has(ingredient.recipe_id)) grouped.set(ingredient.recipe_id, []);
+            grouped.get(ingredient.recipe_id).push(ingredient);
+        }
+        return recipes.map(recipe => ({ ...recipe, ingredients: grouped.get(recipe.id) || [] }));
+    }
+
     async findAll(filters = {}) {
         const selectSql = `
             SELECT r.*, u.full_name AS author_name, u.avatar_url AS author_avatar,

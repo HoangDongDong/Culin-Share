@@ -1,5 +1,7 @@
 const aiService = require('../services/ai.service');
 const adminRepository = require('../repositories/admin.repository');
+const recipeRepository = require('../repositories/recipe.repository');
+const { enrichSuggestions } = require('../services/fridgeMatching.service');
 
 class AIController {
     async suggestRecipesFromFridge(req, res, next) {
@@ -13,10 +15,14 @@ class AIController {
                 });
             }
 
-            const parsedPeopleCount = parseInt(peopleCount) || 2;
+            const parsedPeopleCount = Number(peopleCount ?? 2);
             const parsedComplexity = complexity || 'bình thường';
             const parsedCookingSpeed = cookingSpeed || 'bình thường';
-            const parsedDishCount = parseInt(dishCount) || 3;
+            const parsedDishCount = Number(dishCount ?? 3);
+            if (!Number.isInteger(Number(peopleCount ?? 2)) || parsedPeopleCount < 1 || parsedPeopleCount > 20 ||
+                !Number.isInteger(Number(dishCount ?? 3)) || parsedDishCount < 1 || parsedDishCount > 7) {
+                return res.status(400).json({ success: false, message: 'Số người phải từ 1 đến 20 và số món phải từ 1 đến 7.' });
+            }
 
             const suggestions = await aiService.getFridgeSuggestions({
                 ingredients,
@@ -24,6 +30,11 @@ class AIController {
                 complexity: parsedComplexity,
                 cookingSpeed: parsedCookingSpeed,
                 dishCount: parsedDishCount
+            });
+
+            const candidates = await recipeRepository.findPublishedForMatching();
+            const matchedSuggestions = enrichSuggestions(suggestions, candidates, {
+                ingredients, peopleCount: parsedPeopleCount, cookingSpeed: parsedCookingSpeed
             });
 
             // Ghi nhận log sử dụng AI (giúp thống kê ở Admin Dashboard)
@@ -38,7 +49,7 @@ class AIController {
             return res.status(200).json({
                 success: true,
                 message: 'Lấy gợi ý món ăn thành công',
-                data: suggestions
+                data: matchedSuggestions
             });
 
         } catch (error) {

@@ -42,6 +42,7 @@ BẮT BUỘC TRẢ VỀ DƯỚI DẠNG MỘT ĐỐI TƯỢNG JSON HỢP LỆ CÓ
             "prepTime": 10,
             "cookTime": 15,
             "difficulty": "dễ",
+            "ingredients": [{ "name": "Trứng gà", "quantity": 3, "unit": "quả" }],
             "steps": [
                 "Bước 1: ...",
                 "Bước 2: ...",
@@ -52,6 +53,7 @@ BẮT BUỘC TRẢ VỀ DƯỚI DẠNG MỘT ĐỐI TƯỢNG JSON HỢP LỆ CÓ
 }
 
 YÊU CẦU QUAN TRỌNG VỀ TRƯỜNG "steps":
+Mỗi món BẮT BUỘC có mảng "ingredients" chứa TOÀN BỘ nguyên liệu cần dùng (kể cả gia vị), định lượng cho đúng ${peopleCount} người. quantity là số dương, unit là đơn vị rõ ràng (g, ml, quả, củ, thìa...). Không gộp định lượng vào name. Đây là dữ liệu để hệ thống tính lại danh sách mua thêm.
 Mỗi bước trong mảng "steps" phải được viết CHI TIẾT và ĐẦY ĐỦ, bao gồm:
 - Định lượng cụ thể cho ${peopleCount} người ăn (ví dụ: "3 quả trứng", "200g thịt", "2 thìa canh nước mắm").
 - Mức lửa cụ thể khi nấu (ví dụ: "lửa vừa", "lửa lớn", "lửa nhỏ liu riu").
@@ -132,7 +134,13 @@ Hãy chỉ trả về dữ liệu JSON thô. Không bọc trong cặp dấu nhá
     }
 
     async suggestDishDistribution(peopleCount, cookingTime) {
-        let activeModel = this.model;
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            const error = new Error('Thiếu GEMINI_API_KEY trong cấu hình hệ thống');
+            error.statusCode = 500;
+            throw error;
+        }
+        const activeModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
         let attempt = 0;
         const maxAttempts = 3;
 
@@ -140,13 +148,6 @@ Hãy chỉ trả về dữ liệu JSON thô. Không bọc trong cặp dấu nhá
             attempt++;
             try {
                 console.log(`🤖 Đang kết nối Gemini API (Lần thử ${attempt}/${maxAttempts}) sử dụng model: ${activeModel}...`);
-                const genModel = this.genAI.getGenerativeModel({
-                    model: activeModel,
-                    generationConfig: {
-                        temperature: 0.7,
-                    }
-                });
-
                 const prompt = `Bạn là một chuyên gia lập kế hoạch bữa ăn. Tôi cần chuẩn bị bữa ăn cho ${peopleCount} người trong tổng thời gian là ${cookingTime} phút. 
 Hãy suy luận và phân bổ số lượng các món ăn theo độ khó một cách hợp lý nhất:
 - Món dễ (chuẩn bị ~15p)
@@ -165,23 +166,36 @@ Mẫu JSON cần trả về:
   "hard": 0
 }`;
 
-                const result = await genModel.generateContent(prompt);
-                const response = result.response;
-                let text = response.text().trim();
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.7, responseMimeType: 'application/json' }
+                    }),
+                    signal: AbortSignal.timeout(30000)
+                });
+                if (!response.ok) {
+                    throw new Error(`Gemini API Error: ${response.status}`);
+                }
+                const data = await response.json();
+                let text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+                if (!text) throw new Error('Không nhận được phản hồi từ mô hình AI');
 
                 // Lọc bỏ markdown markdown if any
                 text = text.replace(/```json/g, '').replace(/```/g, '').trim();
                 
-                return JSON.parse(text);
+                const distribution = JSON.parse(text);
+                const counts = ['easy', 'medium', 'hard'].map(key => distribution?.[key]);
+                const total = counts.reduce((sum, count) => sum + count, 0);
+                if (!counts.every(count => Number.isInteger(count) && count >= 0) || total < 1 || total > 5) {
+                    throw new Error('Phân bổ món ăn từ AI không hợp lệ');
+                }
+                return { easy: distribution.easy, medium: distribution.medium, hard: distribution.hard };
 
             } catch (error) {
                 console.warn(`⚠️ Lỗi ở lần thử ${attempt}:`, error.message);
                 if (attempt < maxAttempts) {
-                    if (activeModel === 'gemini-3.8-flash') {
-                        activeModel = 'gemini-3.5-flash-lite';
-                    } else {
-                        activeModel = 'gemini-3.8-flash';
-                    }
                     await new Promise(resolve => setTimeout(resolve, 3000));
                 } else {
                     console.error('❌ Đã thử lại tối đa nhưng vẫn thất bại.');
