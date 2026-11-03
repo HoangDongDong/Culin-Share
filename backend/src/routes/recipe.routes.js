@@ -22,8 +22,10 @@ const uploadRecipeImages = (req, res, next) => {
 
 router.get('/recipes', recipeController.getAllRecipes);
 router.get('/recipes/ranking', recipeController.getRecipesRanking);
-router.get('/recipes/:id', recipeController.getRecipeById);
-router.get('/recipes/slug/:slug', recipeController.getRecipeBySlug);
+router.get('/recipes/suggestions', recipeController.suggestions);
+const optionalAuth=(req,res,next)=>req.headers.authorization?verifyToken(req,res,next):next();
+router.get('/recipes/:id', optionalAuth, recipeController.getRecipeById);
+router.get('/recipes/slug/:slug', optionalAuth, recipeController.getRecipeBySlug);
 router.post('/recipes', verifyToken, uploadRecipeImages, validateRecipe, recipeController.createRecipe);
 router.put('/recipes/:id', verifyToken, uploadRecipeImages, validateRecipe, recipeController.updateRecipe);
 router.delete('/recipes/:id', verifyToken, recipeController.deleteRecipe);

@@ -8,23 +8,11 @@
  */
 
 const multer = require('multer');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const createStorage = require('./cloudinaryStorage');
 const cloudinary = require('../config/cloudinary');
 
 // Cấu hình lưu trữ Cloudinary chung
-const storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: async (req, file) => {
-        const isAvatar = file.fieldname === 'avatar';
-        const folderName = isAvatar ? 'mamngon/avatars' : 'mamngon/recipes';
-        
-        return {
-            folder: folderName,
-            allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-            public_id: `${file.fieldname}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        };
-    }
-});
+const storage = createStorage(cloudinary);
 
 // Kiểm tra loại file đầu vào
 const fileFilter = (req, file, cb) => {

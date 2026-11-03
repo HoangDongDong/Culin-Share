@@ -21,7 +21,7 @@ class NotificationService {
      * @param {number|null} params.recipeId - ID recipe liên quan (nếu có)
      * @param {string} params.message - Nội dung thông báo
      */
-    async createAndNotify({ userId, senderId, type, recipeId = null, message }) {
+    async createAndNotify({ userId, senderId, type, recipeId = null, postId = null, communityCommentId = null, message }) {
         // Không gửi thông báo cho chính mình
         if (userId === senderId) return;
 
@@ -32,6 +32,8 @@ class NotificationService {
                 sender_id: senderId,
                 type,
                 recipe_id: recipeId,
+                post_id: postId,
+                community_comment_id: communityCommentId,
                 message,
             });
 

@@ -16,7 +16,9 @@ import SavedRecipesPage from "./pages/SavedRecipesPage.jsx";
 import AdminDashboardPage from "./pages/AdminDashboardPage.jsx";
 import AdminRoute from "./components/AdminRoute.jsx";
 import SmartFridgePage from "./pages/SmartFridgePage.jsx";
+import RequireAuth from "./components/RequireAuth.jsx";
 import ErrorPage from "./pages/ErrorPage.jsx";
+import CommunityPage from "./pages/CommunityPage.jsx";
 
 function App() {
   return (
@@ -31,12 +33,14 @@ function App() {
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/chef/:id" element={<ChefProfilePage />} />
       <Route path="/chefs" element={<TopChefsPage />} />
+      <Route path="/community" element={<CommunityPage />} />
+      <Route path="/community/posts/:id" element={<CommunityPage />} />
       <Route path="/submit-recipe" element={<SubmitRecipePage />} />
       <Route path="/saved-recipes" element={<SavedRecipesPage />} />
       <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/fridge" element={<SmartFridgePage />} />
+      <Route path="/fridge" element={<RequireAuth><SmartFridgePage /></RequireAuth>} />
       <Route path="*" element={<ErrorPage />} />
     </Routes>
   );

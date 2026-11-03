@@ -1,3 +1,5 @@
+const {parseSearch}=require('../services/searchFilters');
+const recipeRepository=require('../repositories/recipe.repository');
 const recipeService = require('../services/recipe.service');
 
 const attachUploadedImages = (body, files = {}) => {
@@ -26,10 +28,11 @@ const attachUploadedImages = (body, files = {}) => {
 };
 
 class RecipeController {
+    async suggestions(req,res,next){try{const filters=parseSearch({q:req.query.q});res.json({success:true,data:await recipeRepository.suggestions(filters.query||'')});}catch(error){next(error);}}
+
     async getAllRecipes(req, res, next) {
         try {
-            const { category, q, difficulty, sort, author_id, page, limit } = req.query;
-            const result = await recipeService.getAllRecipes({ category, query: q, difficulty, sort, author_id, page, limit });
+            const result = await recipeService.getAllRecipes(parseSearch(req.query));
             return res.status(200).json({
                 success: true,
                 data: result.data,
@@ -43,7 +46,7 @@ class RecipeController {
     async getRecipeById(req, res, next) {
         try {
             const { id } = req.params;
-            const recipe = await recipeService.getRecipeById(id);
+            const recipe = await recipeService.getRecipeById(id,req.user);
             return res.status(200).json({
                 success: true,
                 data: recipe
@@ -56,7 +59,7 @@ class RecipeController {
     async getRecipeBySlug(req, res, next) {
         try {
             const { slug } = req.params;
-            const recipe = await recipeService.getRecipeBySlug(slug);
+            const recipe = await recipeService.getRecipeBySlug(slug,req.user);
             return res.status(200).json({
                 success: true,
                 data: recipe

@@ -41,7 +41,7 @@ const SavedRecipesPage = () => {
   return (
     <div className="bg-surface text-on-surface font-body-md min-h-screen flex flex-col">
       <Header />
-      <main className="max-w-max-width mx-auto px-margin-mobile md:px-margin-desktop py-xl flex-grow w-full">
+      <main className="w-full px-6 sm:px-10 md:px-14 lg:px-20 xl:px-24 py-xl flex-grow">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-md mb-lg">
           <div>
             <p className="font-label-md text-primary uppercase tracking-wider font-bold mb-xs">

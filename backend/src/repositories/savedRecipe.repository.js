@@ -14,7 +14,7 @@ class SavedRecipeRepository {
                 FROM reviews
                 GROUP BY recipe_id
             ) avg_rev ON r.id = avg_rev.recipe_id
-            WHERE sr.user_id = ?
+            WHERE sr.user_id = ? AND r.status='published'
             ORDER BY sr.created_at DESC
         `;
         const [rows] = await pool.query(sql, [userId]);

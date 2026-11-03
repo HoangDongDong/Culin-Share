@@ -56,7 +56,7 @@ const ChefProfilePage = () => {
             .then((status) => setIsFollowed(status.followed))
             .catch((err) => console.error("Error checking follow status:", err));
 
-          getSavedRecipesApi(id)
+          if(Number(user.id)===Number(id))getSavedRecipesApi()
             .then((saved) => setSavedRecipes(saved || []))
             .catch((err) => console.error("Error getting saved recipes:", err));
         }
@@ -144,7 +144,7 @@ const ChefProfilePage = () => {
     <div className="bg-surface text-on-surface font-body-md min-h-screen flex flex-col">
       <Header />
       
-      <main className="max-w-max-width mx-auto px-margin-mobile md:px-margin-desktop py-xl flex-grow w-full">
+      <main className="w-full px-6 sm:px-10 md:px-14 lg:px-20 xl:px-24 py-xl flex-grow">
         {/* Profile Header Section */}
         <section className="flex flex-col md:flex-row gap-xl items-start md:items-center mb-xl">
           <div className="relative group select-none">
@@ -228,14 +228,14 @@ const ChefProfilePage = () => {
           >
             Công thức của tôi
           </button>
-          <button
+          {Number(user?.id)===Number(id)&&<button
             onClick={() => setActiveTab("saved")}
             className={`px-6 py-4 font-label-md font-bold whitespace-nowrap relative ${
               activeTab === "saved" ? "text-primary active-tab-indicator active-dot" : "text-on-surface-variant hover:text-primary transition-colors"
             }`}
           >
             Đã lưu
-          </button>
+          </button>}
           <button
             onClick={() => setActiveTab("activity")}
             className={`px-6 py-4 font-label-md font-bold whitespace-nowrap relative ${
@@ -314,7 +314,7 @@ const ChefProfilePage = () => {
           </div>
         )}
 
-        {activeTab === "saved" && (
+        {activeTab === "saved" && Number(user?.id)===Number(id) && (
           <div className="animate-in fade-in duration-300">
             {savedRecipes.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">

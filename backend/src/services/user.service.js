@@ -17,6 +17,12 @@ const { generateOtp, getOtpExpiry } = require('../utils/otp.util');
 const { toUserDTO } = require('../utils/dto.util');
 
 class UserService {
+    async getPublicProfileData(userId) {
+        const {id}=require('./resourceSecurity');
+        const user=await userRepository.findById(id(userId));
+        if(!user)throw Object.assign(new Error('Không tìm thấy người dùng'),{statusCode:404});
+        return require('../utils/dto.util').toPublicUserDTO(user);
+    }
     /**
      * Xác thực thông tin đăng nhập
      * Flow: Tìm user -> So sánh password -> Tạo JWT
@@ -274,6 +280,7 @@ class UserService {
      * @returns {Object} Updated User DTO
      */
     async updateProfile(userId, data) {
+        require('./resourceSecurity').validateUrls(data);
         // Bước 1: Kiểm tra user tồn tại
         const user = await userRepository.findById(userId);
         if (!user) {

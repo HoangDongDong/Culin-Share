@@ -24,8 +24,10 @@ const followRoutes = require('./src/routes/follow.routes');
 const aiRoutes = require('./src/routes/ai.routes');
 const adminRoutes = require('./src/routes/admin.routes');
 const notificationRoutes = require('./src/routes/notification.routes');
+const communityRoutes = require('./src/routes/community.routes');
 
 const pool = require('./src/config/database');
+const { runMigrations } = require('./database/runner');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,8 +39,12 @@ const PORT = process.env.PORT || 3000;
 // Cho phép Cross-Origin requests từ frontend (cấu hình qua env)
 const corsOrigins = process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-    : ['http://localhost:5173', 'http://localhost:3001'];
+    : ['http://localhost:5050', 'http://localhost:5173', 'http://localhost:3001'];
 
+const {writeOriginGuard,securityHeaders}=require('./src/middlewares/securityMiddleware');
+app.disable('x-powered-by');
+app.use(securityHeaders);
+app.use(writeOriginGuard(corsOrigins));
 app.use(cors({
     origin: (origin, callback) => {
         // Cho phép request không có origin (ví dụ: Postman, curl)
@@ -46,16 +52,16 @@ app.use(cors({
         if (corsOrigins.includes(origin)) {
             return callback(null, true);
         }
-        return callback(new Error(`CORS: Origin '${origin}' không được phép`), false);
+        return callback(Object.assign(new Error('Nguồn gửi yêu cầu không được phép.'),{statusCode:403}), false);
     },
     credentials: true,
 }));
 
 // Parse JSON body
-app.use(express.json());
+app.use(express.json({limit:'1mb'}));
 
 // Parse URL-encoded body
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true,limit:'1mb',parameterLimit:1000 }));
 
 // Ảnh được lưu trên Cloudinary — không cần serve static /uploads nữa
 
@@ -93,6 +99,8 @@ app.use('/api', adminRoutes);
 
 // Notification routes
 app.use('/api', notificationRoutes);
+app.use('/api', communityRoutes);
+app.use('/api', require('./src/routes/home.routes'));
 
 // User routes: /user/profile, /admin/profile, ...
 app.use('/', userRoutes);
@@ -118,7 +126,7 @@ app.use((err, req, res, next) => {
 
     res.status(err.statusCode || 500).json({
         success: false,
-        message: err.message || 'Internal Server Error',
+        message: process.env.NODE_ENV==='production' && (!err.statusCode || err.statusCode>=500) ? 'Có lỗi máy chủ. Vui lòng thử lại.' : err.message || 'Internal Server Error',
         ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     });
 });
@@ -134,6 +142,9 @@ initSocket(server);
 
 const startServer = async () => {
     try {
+        await runMigrations();
+        // Ensure existing admin logging also initializes on a brand-new database.
+        await require('./src/repositories/admin.repository').initTables();
         // Test kết nối database
         const connection = await pool.getConnection();
         console.log('✅ Kết nối MySQL thành công!');

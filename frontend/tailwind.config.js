@@ -90,8 +90,8 @@ export default {
       },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui"],
-        display: ["Playfair Display", "ui-serif", "Georgia", "serif"],
-        "display-lg": ["Playfair Display"],
+        display: ["Lora", "Playfair Display", "ui-serif", "Georgia", "serif"],
+        "display-lg": ["Lora", "Playfair Display", "serif"],
         "label-sm": ["Inter"],
         "display-lg-mobile": ["Playfair Display"],
         "headline-sm": ["Playfair Display"],

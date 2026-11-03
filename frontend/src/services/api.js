@@ -54,8 +54,11 @@ api.interceptors.response.use(
 )
 
 export const getImageUrl = (url) => {
-  if (!url) return "";
-  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+  if (typeof url!=='string'||!url.trim()) return "";
+  url=url.trim();
+  if(Array.from(url).some(char=>char.charCodeAt(0)<=32)||url.startsWith('//')||url.includes('\\'))return '';
+  if(/^[a-z][a-z0-9+.-]*:/i.test(url)&&!/^https?:/i.test(url)&&!/^blob:/i.test(url)&&!/^data:image\/(?:png|jpeg|webp|gif);base64,/i.test(url))return '';
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:") || url.startsWith("blob:")) {
     return url;
   }
   const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';

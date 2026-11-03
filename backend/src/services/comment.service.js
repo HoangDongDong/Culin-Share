@@ -1,7 +1,9 @@
 const commentRepository = require('../repositories/comment.repository');
 
+const {publishedRecipe,id}=require('./resourceSecurity');
 class CommentService {
     async getCommentsByRecipeId(recipeId) {
+        await publishedRecipe(recipeId);
         const rawComments = await commentRepository.findByRecipeId(recipeId);
         
         // Build hierarchy structure
@@ -23,7 +25,9 @@ class CommentService {
     }
 
     async addComment(userId, recipeId, content, parentId = null) {
-        if (!content || !content.trim()) {
+        await publishedRecipe(recipeId);
+        if(parentId){const parent=await commentRepository.findById(id(parentId));if(!parent||Number(parent.recipe_id)!==Number(recipeId))throw Object.assign(new Error('Bình luận trả lời không thuộc công thức này'),{statusCode:400});}
+        if (typeof content!=='string'||content.length>5000 || !content.trim()) {
             const error = new Error('Nội dung bình luận không được để trống');
             error.statusCode = 400;
             throw error;

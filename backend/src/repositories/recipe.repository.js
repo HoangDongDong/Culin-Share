@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const {like,searchable}=require('../services/searchFilters');
 
 class RecipeRepository {
     async findPublishedForMatching() {
@@ -45,15 +46,17 @@ class RecipeRepository {
 
         // 1. Search Query
         if (filters.query && filters.query.trim()) {
-            whereClauses.push('(r.title LIKE ? OR r.description LIKE ? OR u.full_name LIKE ?)');
-            const likeParam = `%${filters.query.trim()}%`;
-            params.push(likeParam, likeParam, likeParam);
+            whereClauses.push(`(${searchable('r.title')} OR ${searchable('r.description')} OR ${searchable('u.full_name')} OR EXISTS(SELECT 1 FROM recipe_ingredients i WHERE i.recipe_id=r.id AND ${searchable('i.name')}))`);
+            const likeParam = like(filters.query);
+            params.push(likeParam, likeParam, likeParam, likeParam);
         }
 
         // 2. Category Filter
         if (filters.category && filters.category !== 'all') {
-            whereClauses.push('(c.name = ? OR c.slug = ?)');
-            params.push(filters.category, filters.category);
+            const categories=filters.category.split(',').map(value=>value.trim()).filter(Boolean).slice(0,20);
+            const marks=categories.map(()=>'?').join(',');
+            whereClauses.push(`EXISTS(SELECT 1 FROM recipe_categories fc JOIN categories cc ON cc.id=fc.category_id WHERE fc.recipe_id=r.id AND (cc.name IN (${marks}) OR cc.slug IN (${marks})))`);
+            params.push(...categories,...categories);
         }
 
         // 3. Difficulty Filter
@@ -76,6 +79,9 @@ class RecipeRepository {
             params.push(filters.author_id);
         }
 
+        for(const [key,column,op] of [['minCalories','calories','>='],['maxCalories','calories','<='],['minTime','total_time_minutes','>='],['maxTime','total_time_minutes','<=']]) {
+            if(filters[key]!==undefined){whereClauses.push(`r.${column} ${op} ?`);params.push(filters[key]);}
+        }
         // 5. Status Filter
         if (filters.status) {
             whereClauses.push('r.status = ?');
@@ -86,11 +92,11 @@ class RecipeRepository {
 
         const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
-        let orderSql = 'ORDER BY r.created_at DESC';
+        let orderSql = 'ORDER BY r.created_at DESC, r.id DESC';
         if (filters.sort === 'rating') {
-            orderSql = 'ORDER BY average_rating DESC';
+            orderSql = 'ORDER BY average_rating DESC, review_count DESC, r.id DESC';
         } else if (filters.sort === 'newest') {
-            orderSql = 'ORDER BY r.created_at DESC';
+            orderSql = 'ORDER BY r.created_at DESC, r.id DESC';
         }
 
         // Pagination — mặc định 12 công thức/trang, tối đa 50
@@ -129,6 +135,16 @@ class RecipeRepository {
             data: recipes,
             meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
         };
+    }
+
+    async suggestions(query) {
+        if(query.trim().length<2)return [];
+        const pattern=like(query);
+        const [rows]=await pool.query(`SELECT label,kind FROM (
+            SELECT r.title AS label,'recipe' AS kind,0 AS priority FROM recipes r WHERE r.status='published' AND ${searchable('r.title')}
+            UNION ALL SELECT DISTINCT i.name AS label,'ingredient' AS kind,1 AS priority FROM recipe_ingredients i JOIN recipes r ON r.id=i.recipe_id WHERE r.status='published' AND ${searchable('i.name')}
+        ) suggestions GROUP BY label,kind,priority ORDER BY priority,label LIMIT 8`,[pattern,pattern]);
+        return rows;
     }
 
     async findById(id) {

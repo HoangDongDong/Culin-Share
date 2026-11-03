@@ -48,6 +48,10 @@ const typeConfig = {
     review: { icon: 'star', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)' },
     follow: { icon: 'person_add', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.12)' },
     new_recipe: { icon: 'restaurant_menu', color: '#10b981', bg: 'rgba(16, 185, 129, 0.12)' },
+    community_like: { icon: 'favorite', color: '#ab2e10', bg: '#fff0e9' },
+    community_comment: { icon: 'chat_bubble', color: '#ab2e10', bg: '#fff0e9' },
+    community_reply: { icon: 'reply', color: '#ab2e10', bg: '#fff0e9' },
+    community_new_post: { icon: 'diversity_1', color: '#ab2e10', bg: '#fff0e9' },
 };
 
 const NotificationBell = () => {
@@ -95,7 +99,9 @@ const NotificationBell = () => {
             dispatch(markNotificationRead(notif.id));
         }
         setIsOpen(false);
-        if (notif.type === 'comment' || notif.type === 'review' || notif.type === 'new_recipe') {
+        if (notif.type.startsWith('community_') && notif.post_id) {
+            navigate(`/community/posts/${notif.post_id}`);
+        } else if (notif.type === 'comment' || notif.type === 'review' || notif.type === 'new_recipe') {
             if (notif.recipe_id) {
                 navigate(`/recipe/${notif.recipe_id}`);
             }

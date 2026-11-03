@@ -1,17 +1,19 @@
 const aiService = require('../services/ai.service');
 const adminRepository = require('../repositories/admin.repository');
-const recipeRepository = require('../repositories/recipe.repository');
-const { enrichSuggestions } = require('../services/fridgeMatching.service');
+const fridgeRag = require('../services/fridgeRag.service');
 
 class AIController {
     async suggestRecipesFromFridge(req, res, next) {
         try {
-            const { ingredients, peopleCount, complexity, cookingSpeed, dishCount } = req.body;
+            const { ingredients: rawIngredients, peopleCount, complexity, cookingSpeed, dishCount } = req.body;
+            const ingredients = Array.isArray(rawIngredients) ? rawIngredients.map(item => typeof item === 'string' ? { name: item, quantity: '' } : item) : null;
 
-            if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
+            if (!ingredients || ingredients.length === 0 || ingredients.length > 60 || ingredients.some(item => !item ||
+                typeof item.name !== 'string' || !item.name.trim() || item.name.length > 200 ||
+                String(item.quantity ?? '').length > 100)) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Vui lòng cung cấp ít nhất một thực phẩm trong tủ lạnh.'
+                    message: 'Vui lòng nhập từ 1 đến 60 nguyên liệu hợp lệ (tên tối đa 200 ký tự).'
                 });
             }
 
@@ -24,17 +26,12 @@ class AIController {
                 return res.status(400).json({ success: false, message: 'Số người phải từ 1 đến 20 và số món phải từ 1 đến 7.' });
             }
 
-            const suggestions = await aiService.getFridgeSuggestions({
+            const matchedSuggestions = await fridgeRag.suggest({
                 ingredients,
                 peopleCount: parsedPeopleCount,
                 complexity: parsedComplexity,
                 cookingSpeed: parsedCookingSpeed,
                 dishCount: parsedDishCount
-            });
-
-            const candidates = await recipeRepository.findPublishedForMatching();
-            const matchedSuggestions = enrichSuggestions(suggestions, candidates, {
-                ingredients, peopleCount: parsedPeopleCount, cookingSpeed: parsedCookingSpeed
             });
 
             // Ghi nhận log sử dụng AI (giúp thống kê ở Admin Dashboard)

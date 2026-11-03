@@ -217,7 +217,7 @@ const SubmitRecipePage = () => {
     <div className="bg-surface text-on-surface font-body-md min-h-screen flex flex-col">
       <Header />
       
-      <main className="max-w-max-width mx-auto px-margin-mobile md:px-margin-desktop py-lg flex-grow w-full">
+      <main className="w-full px-6 sm:px-10 md:px-14 lg:px-20 xl:px-24 py-lg flex-grow">
         {/* Header Section */}
         <div className="mb-xl select-none">
           <h1 className="font-display-lg text-display-lg-mobile md:text-display-lg text-on-background mb-sm font-bold">

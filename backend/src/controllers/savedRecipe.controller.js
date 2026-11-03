@@ -3,7 +3,7 @@ const savedRecipeService = require('../services/savedRecipe.service');
 class SavedRecipeController {
     async getSavedRecipes(req, res, next) {
         try {
-            const userId = req.query.userId || req.user.id;
+            const userId = req.user.id;
             const recipes = await savedRecipeService.getSavedRecipes(userId);
             return res.status(200).json({
                 success: true,

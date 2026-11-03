@@ -1,166 +1,52 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import RecipeCard from "../components/RecipeCard";
 import { getCategoriesApi } from "../services/categoryApi";
-import { searchRecipesApi } from "../services/recipeApi";
+import api from "../services/api";
+import SearchSuggestions from "../components/SearchSuggestions";
 
 const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const q = searchParams.get("q") || "";
-  const cat = searchParams.get("category") || "";
-
-  const [searchQuery, setSearchQuery] = useState(q);
-  const [selectedCategories, setSelectedCategories] = useState(cat ? [cat] : []);
-  const [selectedTimeRange, setSelectedTimeRange] = useState("all");
-  const [selectedDifficulty, setSelectedDifficulty] = useState("all");
-  const [sortBy, setSortBy] = useState("newest");
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const [dbRecipes, setDbRecipes] = useState([]);
-  const [dbCategories, setDbCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [cats, recs] = await Promise.all([
-          getCategoriesApi(),
-          searchRecipesApi({ q, limit: 100 })
-        ]);
-        setDbCategories(cats);
-        setDbRecipes(recs);
-      } catch (err) {
-        console.error("Lỗi khi tìm kiếm công thức:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [q]);
-
-  useEffect(() => {
-    setSearchQuery(q);
-  }, [q]);
-
-  useEffect(() => {
-    if (cat) {
-      setSelectedCategories([cat]);
-    } else {
-      setSelectedCategories([]);
-    }
-  }, [cat]);
-
-  const handleCategoryChange = (category) => {
-    setSelectedCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category]
-    );
-    setCurrentPage(1);
-  };
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    setSearchParams({ q: searchQuery, ...(cat ? { category: cat } : {}) });
-    setCurrentPage(1);
-  };
-
-  const handleChipClick = (term) => {
-    setSearchQuery(term);
-    setSearchParams({ q: term });
-    setCurrentPage(1);
-  };
-
-  // Filter recipes logic
-  const filteredRecipes = useMemo(() => {
-    return dbRecipes.filter((recipe) => {
-      // 1. Text Search (already partially filtered by backend, but we can do extra matching in case of client sync)
-      if (q.trim()) {
-        const queryLower = q.toLowerCase();
-        const titleVal = (recipe.title || "").toLowerCase();
-        const descVal = (recipe.description || "").toLowerCase();
-        const authorVal = (recipe.author_name || "").toLowerCase();
-        const matchesName = titleVal.includes(queryLower);
-        const matchesDesc = descVal.includes(queryLower);
-        const matchesAuthor = authorVal.includes(queryLower);
-        if (!matchesName && !matchesDesc && !matchesAuthor) return false;
-      }
-
-      // 2. Categories
-      if (selectedCategories.length > 0) {
-        const matchesCategory = selectedCategories.some(catName => 
-          recipe.categories && recipe.categories.some(rcat => 
-            (typeof rcat === 'string' ? rcat : rcat.name).toLowerCase() === catName.toLowerCase()
-          )
-        );
-        if (!matchesCategory) return false;
-      }
-
-      // 3. Prep Time
-      if (selectedTimeRange !== "all") {
-        const time = (recipe.prep_time_minutes || recipe.prepTimeMinutes || 0) + (recipe.cook_time_minutes || recipe.cookTimeMinutes || 0);
-        if (selectedTimeRange === "under15" && time >= 15) return false;
-        if (selectedTimeRange === "15to30" && (time < 15 || time > 30)) return false;
-        if (selectedTimeRange === "over30" && time <= 30) return false;
-      }
-
-      // 4. Difficulty
-      if (selectedDifficulty !== "all") {
-        const diffMap = {
-          "Dễ": "dễ",
-          "Vừa": "trung bình",
-          "Trung bình": "trung bình",
-          "Khó": "khó"
-        };
-        const mappedDiff = diffMap[selectedDifficulty];
-        if ((recipe.difficulty || "").toLowerCase() !== mappedDiff) return false;
-      }
-
-      return true;
-    }).sort((a, b) => {
-      if (sortBy === "rating") {
-        const ratingA = parseFloat(a.rating || a.average_rating || a.averageRating || 0);
-        const ratingB = parseFloat(b.rating || b.average_rating || b.averageRating || 0);
-        return ratingB - ratingA;
-      }
-      if (sortBy === "newest") {
-        const dateA = new Date(a.created_at || a.createdTime || 0);
-        const dateB = new Date(b.created_at || b.createdTime || 0);
-        return dateB - dateA;
-      }
-      return b.id - a.id;
-    });
-  }, [dbRecipes, q, selectedCategories, selectedTimeRange, selectedDifficulty, sortBy]);
-
-  const totalPages = Math.ceil(filteredRecipes.length / 6);
-  const displayedRecipes = filteredRecipes.slice((currentPage - 1) * 6, currentPage * 6);
-
-  const resetFilters = () => {
-    setSearchQuery("");
-    setSelectedCategories([]);
-    setSelectedTimeRange("all");
-    setSelectedDifficulty("all");
-    setSortBy("newest");
-    setSearchParams({});
-    setCurrentPage(1);
-  };
+  const paramsKey=searchParams.toString();
+  const q=searchParams.get('q')||'';
+  const selectedCategories=(searchParams.get('category')||'').split(',').filter(Boolean);
+  const selectedDifficulty=searchParams.get('difficulty')||'all';
+  const sortBy=searchParams.get('sort')||'newest';
+  const currentPage=Math.max(1,Number(searchParams.get('page'))||1);
+  const [searchQuery,setSearchQuery]=useState(q);
+  const [dbRecipes,setDbRecipes]=useState([]),[dbCategories,setDbCategories]=useState([]);
+  const [meta,setMeta]=useState({total:0,totalPages:0}),[loading,setLoading]=useState(true),[error,setError]=useState('');
+  const [filtersOpen,setFiltersOpen]=useState(false);
+  const [revision,setRevision]=useState(0);
+  const update=(values)=>{setRevision(value=>value+1);const next=new URLSearchParams(searchParams);next.delete('page');for(const [key,value] of Object.entries(values)){if(value===undefined||value===''||value==='all')next.delete(key);else next.set(key,String(value));}setSearchParams(next);};
+  useEffect(()=>{getCategoriesApi().then(setDbCategories).catch(()=>setDbCategories([]));},[]);
+  useEffect(()=>{const timer=setTimeout(()=>setSearchQuery(q),0);return()=>clearTimeout(timer);},[q]);
+  useEffect(()=>{
+    const controller=new AbortController();
+    api.get('/api/recipes',{params:{...Object.fromEntries(new URLSearchParams(paramsKey)),limit:6},signal:controller.signal}).then(response=>{setDbRecipes(response.data.data);setMeta(response.data.meta);setError('');}).catch(err=>{if(!controller.signal.aborted){setDbRecipes([]);setMeta({total:0,totalPages:0});setError(err.response?.data?.message||'Không tải được kết quả.');}}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});
+    return ()=>controller.abort();
+  },[paramsKey,revision]);
+  const handleCategoryChange=category=>{setLoading(true);update({category:(selectedCategories.includes(category)?selectedCategories.filter(value=>value!==category):[...selectedCategories,category]).join(',')});};
+  const handleSearchSubmit=event=>{event.preventDefault();setLoading(true);update({q:searchQuery.trim()});};
+  const resetFilters=()=>{setSearchParams({});setSearchQuery('');};
+  const displayedRecipes=dbRecipes,totalPages=meta.totalPages;
+  const setCurrentPage=value=>{setLoading(true);update({page:typeof value==='function'?value(currentPage):value});};
 
   return (
-    <div className="bg-surface text-on-surface font-body-md min-h-screen flex flex-col">
+    <div className="search-page bg-surface text-on-surface font-body-md min-h-screen flex flex-col">
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-surface-container-low py-lg select-none">
-        <div className="max-w-max-width mx-auto px-margin-mobile md:px-margin-desktop">
+      <section className="bg-transparent pt-4 pb-6 select-none">
+        <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumbs */}
           <nav className="flex items-center gap-xs mb-md text-label-sm font-label-sm text-on-surface-variant">
             <Link to="/" className="hover:text-primary">Trang chủ</Link>
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <span className="text-primary font-bold">Khám phá công thức</span>
-            </nav>
+          </nav>
           
           <div className="grid md:grid-cols-2 gap-lg items-center">
             <div>
@@ -168,13 +54,7 @@ const SearchPage = () => {
                 Tìm cảm hứng cho bữa tối tiếp theo
               </h1>
               <form onSubmit={handleSearchSubmit} className="relative max-w-lg">
-                <input
-                  className="w-full h-14 pl-12 pr-32 bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0 rounded-xl font-body-md text-on-surface outline-none"
-                  placeholder="Tìm tên món, nguyên liệu, đầu bếp..."
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+                <SearchSuggestions value={searchQuery} onChange={setSearchQuery} onSelect={value=>{setSearchQuery(value);setLoading(true);update({q:value});}}/>
                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
                   search
                 </span>
@@ -187,7 +67,7 @@ const SearchPage = () => {
               </form>
             </div>
             
-            <div className="hidden md:block relative h-[300px] rounded-xl overflow-hidden shadow-md">
+            <div className="hidden md:block relative h-[300px] rounded-2xl overflow-hidden shadow-md">
               <img
                 className="w-full h-full object-cover"
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuAffFMQq_0Q67H-vnKJ0E5blK0Rqt6ar7t--bR-Ud9VgGfdCpVu-cORUjZCUVcji-5dNi9kcUiivQoTCM-uqvdSgVeb1TF7keQcy-jcClgSSwQ82LZTWkZjk3YA3PKPSwFmXMgUof_7_3CYQhEFsr0abNyY-SF9hFW81PLwqjViY3pM6mB87X3hMu0rWPGZo_RtG2jrttzdJQe1xou7iTueHBMPjrRSgiaUIABNqq0qqaMUl_8v5X9oidqbHjf_6y4oj-1im_JrvA"
@@ -199,10 +79,11 @@ const SearchPage = () => {
       </section>
 
       {/* Main Content Area */}
-      <main className="max-w-max-width mx-auto px-margin-mobile md:px-margin-desktop py-xl flex-grow flex flex-col md:flex-row gap-lg w-full">
+      <main className="max-w-[1360px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-grow flex flex-col md:flex-row gap-lg">
         {/* Filter Sidebar */}
         <aside className="w-full md:w-64 flex-shrink-0 select-none">
-          <div className="sticky top-24 space-y-lg bg-surface-container-lowest p-md rounded-xl border border-outline-variant/15 shadow-sm">
+          <button type="button" className="md:hidden w-full border rounded-xl p-3 mb-3" aria-expanded={filtersOpen} onClick={()=>setFiltersOpen(value=>!value)}>Bộ lọc {filtersOpen?"▲":"▼"}</button>
+          <div className={(filtersOpen?"block ":"hidden md:block ")+"md:sticky top-24 space-y-lg bg-surface-container-lowest p-md rounded-xl border border-outline-variant/15 shadow-sm"}>
             
             {/* Categories */}
             <div>
@@ -231,35 +112,9 @@ const SearchPage = () => {
               </div>
             </div>
             
-            {/* Prep Time */}
-            <div className="border-t border-outline-variant/15 pt-md">
-              <h3 className="font-headline-sm text-headline-sm text-on-surface mb-md font-bold flex items-center gap-xs">
-                <span className="material-symbols-outlined text-[20px] text-primary">schedule</span>
-                Thời gian nấu
-              </h3>
-              <div className="space-y-sm">
-                {[
-                  { label: "Tất cả", value: "all" },
-                  { label: "Dưới 15 phút", value: "under15" },
-                  { label: "15 - 30 phút", value: "15to30" },
-                  { label: "Trên 30 phút", value: "over30" }
-                ].map((option) => (
-                  <label key={option.value} className="flex items-center gap-sm cursor-pointer group">
-                    <input
-                      type="radio"
-                      name="time"
-                      checked={selectedTimeRange === option.value}
-                      onChange={() => { setSelectedTimeRange(option.value); setCurrentPage(1); }}
-                      className="w-5 h-5 border-outline-variant text-primary focus:ring-primary focus:outline-none"
-                    />
-                    <span className="font-body-md text-on-surface-variant group-hover:text-primary transition-colors">
-                      {option.label}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            
+            <fieldset className="border-t pt-4"><legend className="font-bold">Tổng thời gian (phút)</legend><div className="grid grid-cols-2 gap-2">{['minTime','maxTime'].map((key,index)=><label key={key} className="text-sm">{index?'Tối đa':'Tối thiểu'}<input aria-label={index?'Thời gian tối đa':'Thời gian tối thiểu'} type="number" min="0" max="10080" value={searchParams.get(key)||''} onChange={event=>{setLoading(true);update({[key]:event.target.value});}} className="w-full min-w-0 border rounded-lg p-2"/></label>)}</div></fieldset>
+            <fieldset className="border-t pt-4"><legend className="font-bold">Năng lượng (kcal/khẩu phần)</legend><div className="grid grid-cols-2 gap-2">{['minCalories','maxCalories'].map((key,index)=><label key={key} className="text-sm">{index?'Tối đa':'Tối thiểu'}<input aria-label={index?'Calo tối đa':'Calo tối thiểu'} type="number" min="0" max="100000" value={searchParams.get(key)||''} onChange={event=>{setLoading(true);update({[key]:event.target.value});}} className="w-full min-w-0 border rounded-lg p-2"/></label>)}</div></fieldset>
+
             {/* Difficulty */}
             <div className="border-t border-outline-variant/15 pt-md">
               <h3 className="font-headline-sm text-headline-sm text-on-surface mb-md font-bold flex items-center gap-xs">
@@ -267,10 +122,10 @@ const SearchPage = () => {
                 Độ khó
               </h3>
               <div className="flex flex-wrap gap-xs">
-                {["all", "Dễ", "Vừa", "Khó"].map((diff) => (
+                {["all", "dễ", "trung bình", "khó"].map((diff) => (
                   <button
                     key={diff}
-                    onClick={() => { setSelectedDifficulty(diff); setCurrentPage(1); }}
+                    onClick={() => { setLoading(true);update({difficulty:diff}); }}
                     className={`px-3 py-1.5 rounded-full border text-label-md font-label-md transition-all font-bold ${
                       selectedDifficulty === diff
                         ? "border-primary bg-primary-container/10 text-primary"
@@ -294,17 +149,18 @@ const SearchPage = () => {
         </aside>
 
         {/* Results Grid Area */}
-        <section className="flex-grow">
+        <section className="flex-grow min-w-0">
+          {error&&<p role="alert" className="p-4 mb-4 rounded-xl bg-red-50 text-red-700">{error}</p>}
           {/* Header & Sort */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-sm mb-lg pb-md border-b border-outline-variant/10 select-none">
             <p className="text-on-surface-variant font-label-md text-label-md font-bold">
-              Tìm thấy <span className="text-primary">{filteredRecipes.length}</span> công thức nấu ăn
+              Tìm thấy <span className="text-primary">{meta.total}</span> công thức nấu ăn
             </p>
             <div className="flex items-center gap-sm">
               <span className="text-label-md font-label-md text-secondary font-bold whitespace-nowrap">Sắp xếp:</span>
               <select
                 value={sortBy}
-                onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
+                onChange={(e) => { setLoading(true);update({sort:e.target.value}); }}
                 className="bg-surface-container-lowest border border-outline-variant text-on-surface text-label-md rounded-lg p-2 outline-none focus:border-primary font-bold shadow-sm"
               >
                 <option value="newest">Mới nhất</option>
@@ -345,27 +201,27 @@ const SearchPage = () => {
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-xs mt-xl select-none">
               <button
-                disabled={currentPage === 1}
+                aria-label="Trang trước" disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => prev - 1)}
                 className="p-2 hover:bg-surface-variant rounded-full text-on-surface-variant disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
               >
                 <span className="material-symbols-outlined">chevron_left</span>
               </button>
-              {Array.from({ length: totalPages }).map((_, i) => (
+              {Array.from({length:Math.min(5,totalPages)},(_,offset)=>Math.max(1,Math.min(currentPage-2,totalPages-4))+offset).map(page => (
                 <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
                   className={`w-9 h-9 flex items-center justify-center rounded-full text-label-md font-bold transition-all ${
-                    currentPage === i + 1
+                    currentPage === page
                       ? "bg-primary text-on-primary shadow-md"
                       : "hover:bg-surface-variant text-on-surface-variant"
                   }`}
                 >
-                  {i + 1}
+                  {page}
                 </button>
               ))}
               <button
-                disabled={currentPage === totalPages}
+                aria-label="Trang sau" disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage(prev => prev + 1)}
                 className="p-2 hover:bg-surface-variant rounded-full text-on-surface-variant disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
               >

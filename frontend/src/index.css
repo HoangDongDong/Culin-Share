@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@400;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,400..700;1,400..700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -76,5 +76,18 @@ body {
 
 .animate-bounce-slow {
   animation: bounce-slow 3s infinite;
+}
+
+/* Allow grid/flex content to shrink instead of widening the mobile viewport. */
+main, main section, main aside { min-width: 0; }
+img { max-width: 100%; }
+@media (max-width: 640px) {
+  .search-page h1 { font-size: 32px; line-height: 1.2; }
+  .smart-fridge-main { padding: 24px 16px; }
+  .smart-fridge-main input { min-width: 0; }
+  .smart-fridge-main button { min-height: 40px; }
+  .community-post-content, .community-comments { overflow-wrap: anywhere; }
+  .community-modal { max-height: 90dvh; overflow-y: auto; }
+  header > div:first-child > a:first-child { font-size: 28px; }
 }
 

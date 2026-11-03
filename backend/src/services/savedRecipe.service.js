@@ -1,11 +1,13 @@
 const savedRecipeRepository = require('../repositories/savedRecipe.repository');
 
+const {publishedRecipe}=require('./resourceSecurity');
 class SavedRecipeService {
     async getSavedRecipes(userId) {
         return await savedRecipeRepository.findAllByUserId(userId);
     }
 
     async saveRecipe(userId, recipeId) {
+        await publishedRecipe(recipeId);
         await savedRecipeRepository.create(userId, recipeId);
         return { saved: true };
     }

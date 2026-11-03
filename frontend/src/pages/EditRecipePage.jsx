@@ -305,7 +305,7 @@ const EditRecipePage = () => {
         </div>
       )}
 
-      <main className="max-w-max-width mx-auto px-margin-mobile md:px-margin-desktop py-lg flex-grow w-full">
+      <main className="w-full px-6 sm:px-10 md:px-14 lg:px-20 xl:px-24 py-lg flex-grow">
         {/* Header Section */}
         <form onSubmit={handleSubmit}>
           <div className="mb-lg flex flex-col md:flex-row md:items-end justify-between gap-md">

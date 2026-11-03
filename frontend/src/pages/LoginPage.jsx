@@ -1,18 +1,20 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { loginAccount, setGoogleAuth } from "../store/authSlice";
 import { googleLoginApi } from "../services/authApi";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = ["/fridge", "/community"].includes(location.state?.from) ? location.state.from : "/";
   const dispatch = useDispatch();
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(location.state?.message || "");
 
   const handleGoogleLoginSuccess = async (response) => {
     const idToken = response.credential;
@@ -22,7 +24,7 @@ const LoginPage = () => {
       const res = await googleLoginApi(idToken);
       if (res.success) {
         dispatch(setGoogleAuth(res.data));
-        navigate("/");
+        navigate(returnTo, { replace: true });
       } else {
         setMessage(res.message || "Đăng nhập bằng Google thất bại.");
       }
@@ -71,7 +73,7 @@ const LoginPage = () => {
     try {
       const resultAction = await dispatch(loginAccount({ username: usernameOrEmail, password }));
       if (loginAccount.fulfilled.match(resultAction)) {
-        navigate("/");
+        navigate(returnTo, { replace: true });
       } else {
         setMessage(resultAction.payload || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.");
       }

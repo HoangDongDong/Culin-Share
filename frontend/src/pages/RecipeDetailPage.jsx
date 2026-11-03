@@ -309,7 +309,7 @@ const RecipeDetailPage = () => {
     <div className="bg-surface text-on-surface font-body-md min-h-screen flex flex-col">
       <Header />
 
-      <main className="max-w-max-width mx-auto px-margin-mobile md:px-margin-desktop py-base flex-grow w-full">
+      <main className="w-full px-6 sm:px-10 md:px-14 lg:px-20 xl:px-24 py-base flex-grow">
         {/* Banner Section */}
         <section className="relative w-full mb-lg overflow-hidden rounded-xl select-none shadow-sm">
           <div className="aspect-[16/9] md:aspect-[21/9] w-full relative">

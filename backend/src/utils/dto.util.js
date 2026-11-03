@@ -78,5 +78,6 @@ const toUserDTO = (user) => {
 };
 
 module.exports = {
-    toUserDTO
+    toUserDTO,
+    toPublicUserDTO: user => user ? Object.fromEntries(['id','username','full_name','avatar_url','bio','facebook_url','instagram_username','created_at'].map(key=>[key,user[key]??null])) : null
 };

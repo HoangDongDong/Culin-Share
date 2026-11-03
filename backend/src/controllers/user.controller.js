@@ -47,7 +47,7 @@ class UserController {
     async getProfileById(req, res, next) {
         try {
             const { id } = req.params;
-            const userDTO = await UserService.getProfileData(id);
+            const userDTO = await UserService.getPublicProfileData(id);
 
             return res.status(200).json({
                 success: true,

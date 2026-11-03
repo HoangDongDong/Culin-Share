@@ -54,7 +54,7 @@ const ProductDetailPage = () => {
     <div className="bg-surface text-on-surface font-body-md min-h-screen flex flex-col">
       <Header />
       
-      <main className="max-w-max-width mx-auto px-margin-mobile md:px-margin-desktop py-md flex-grow w-full">
+      <main className="w-full px-6 sm:px-10 md:px-14 lg:px-20 xl:px-24 py-md flex-grow">
         {/* Breadcrumbs */}
         <nav className="flex items-center gap-xs text-label-sm font-label-sm text-on-surface-variant mb-md select-none">
           <a href="#" className="hover:text-primary">Home</a>

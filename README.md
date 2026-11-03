@@ -109,9 +109,11 @@ npm install
 ```
 
 ### 2. Cài đặt Cơ sở dữ liệu (MySQL)
-1.  Mở công cụ quản trị MySQL (như phpMyAdmin, DBeaver, MySQL Workbench, hoặc CLI).
-2.  Tạo một database mới tên là `mamngon` (hoặc tên tùy chọn).
-3.  Nhập file SQL khởi tạo dữ liệu tại: [init.sql](file:///d:/code/CNPMM/MamNgon/backend/database/init.sql).
+1. Cấu hình MySQL trong `backend/.env` theo mục bên dưới.
+2. Chạy `npm run db:update` trong thư mục `backend` để tạo database mới hoặc cập nhật database hiện có, không xóa dữ liệu cũ.
+3. Sau mỗi lần pull mã mới, `npm run dev` hoặc `npm start` cũng tự chạy các migration chưa áp dụng trước khi mở server. Dữ liệu Cộng đồng mẫu chỉ được thêm một lần trong môi trường phát triển.
+
+Xem [hướng dẫn migration và dữ liệu Cộng đồng](backend/database/README.md). Không import trực tiếp `init.sql` vào database đang dùng vì file này có lệnh reset; runner mới chỉ sử dụng phần khởi tạo an toàn khi database trống.
 
 ### 3. Cấu hình biến môi trường
 Tạo file `.env` trong thư mục `backend/` dựa trên file `.env.example` và điền đầy đủ các thông tin:

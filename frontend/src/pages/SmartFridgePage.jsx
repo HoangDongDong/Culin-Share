@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import api, { getImageUrl } from "../services/api";
+
+import { downloadShoppingPdf } from '../services/shoppingPdf';
 
 const QUICK_INGREDIENTS = [
   "Trứng gà", "Cà chua", "Thịt heo", "Thịt bò", "Thịt gà",
@@ -10,7 +12,24 @@ const QUICK_INGREDIENTS = [
   "Khoai tây", "Bắp cải", "Rau cải", "Cá lóc", "Đậu bắp",
 ];
 
+const recipeIngredientLabel = ingredient => {
+  if (typeof ingredient === 'string') return ingredient;
+  if (!ingredient || typeof ingredient.name !== 'string') return '';
+  const quantity = typeof ingredient.quantity === 'number'
+    ? Math.round(ingredient.quantity * 100) / 100 : ingredient.quantity;
+  return [quantity, ingredient.unit, ingredient.name].filter(value => value !== undefined && value !== null && value !== '').join(' ');
+};
+
 const SmartFridgePage = () => {
+  const navigate = useNavigate();
+  const requireSession = () => {
+    const token = localStorage.getItem("token");
+    if (token && token !== "null" && token !== "undefined") return true;
+    navigate("/login", { replace: true, state: {
+      from: "/fridge", message: "Vui lòng đăng nhập để nhận gợi ý món ăn từ tủ lạnh.",
+    } });
+    return false;
+  };
   const [fridgeItems, setFridgeItems] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("fridgeItems") || "[]");
@@ -25,10 +44,57 @@ const SmartFridgePage = () => {
   const [dishDistribution, setDishDistribution] = useState({ easy: 1, medium: 1, hard: 1 });
   const [cookingSpeed, setCookingSpeed] = useState("bình thường");
   const [loading, setLoading] = useState(false);
+  const [pdfBusy,setPdfBusy]=useState(false),[pdfError,setPdfError]=useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [globalShoppingList, setGlobalShoppingList] = useState([]);
   const [activeRecipe, setActiveRecipe] = useState(null);
   const [error, setError] = useState("");
+  const [modalCheckedIngredients, setModalCheckedIngredients] = useState([]);
+
+  const inferUnit = (name, qty) => {
+    const n = (name || '').toLowerCase();
+    if (n.includes('trung') || n.includes('trứng') || n.includes('cà chua') || n.includes('ớt') || n.includes('chanh')) return 'quả';
+    if (n.includes('đậu hũ') || n.includes('dau hu') || n.includes('đậu phụ')) return 'bìa';
+    if (n.includes('tỏi')) return 'tép';
+    if (n.includes('hành')) return 'nhánh';
+    if (n.includes('nước tương') || n.includes('dầu ăn') || n.includes('nước mắm') || n.includes('dấm') || n.includes('giấm')) return 'muỗng canh';
+    if (n.includes('đường') || n.includes('muối') || n.includes('tiêu') || n.includes('hạt nêm') || n.includes('bột ngọt')) return 'muỗng cà phê';
+    if (n.includes('nước lọc') || n.includes('nước dùng') || n.includes('sữa')) {
+      if (Number(qty) <= 10) return 'muỗng canh';
+      return 'ml';
+    }
+    if (n.includes('thịt') || n.includes('cá') || n.includes('tôm') || n.includes('nấm') || n.includes('mực') || n.includes('bột') || n.includes('bắp cải') || n.includes('khoai')) {
+      if (Number(qty) >= 20) return 'g';
+    }
+    return '';
+  };
+
+  const formatIngredientDisplay = (raw) => {
+    if (!raw || typeof raw !== 'string') return raw;
+    // Dạng 1: "Tên: Số lượng Unit" (ví dụ: "Đậu hũ trắng: 8" hoặc "Thịt heo xay: 100 g")
+    const colonMatch = raw.match(/^([^:]+):\s*([\d.,]+)\s*(.*)$/);
+    if (colonMatch) {
+      const [, name, qty, rawUnit] = colonMatch;
+      const unit = rawUnit.trim() || inferUnit(name, qty);
+      return `${qty}${unit ? ` ${unit}` : ''} ${name}`.trim();
+    }
+    // Dạng 2: "Số lượng Unit Tên"
+    const prefixMatch = raw.match(/^([\d.,]+)\s*([a-zA-ZÀ-ỹ]*)\s+(.+)$/);
+    if (prefixMatch) {
+      const [, qty, possibleUnit, name] = prefixMatch;
+      if (!possibleUnit || possibleUnit.length > 10) {
+        const unit = inferUnit(name || possibleUnit, qty);
+        return `${qty}${unit ? ` ${unit}` : ''} ${possibleUnit ? `${possibleUnit} ${name || ''}` : name}`.trim();
+      }
+    }
+    return raw;
+  };
+
+  const toggleModalIngredient = (idx) => {
+    setModalCheckedIngredients(prev =>
+      prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
+    );
+  };
 
   const saveToLocalStorage = (items) => localStorage.setItem("fridgeItems", JSON.stringify(items));
 
@@ -86,6 +152,7 @@ const SmartFridgePage = () => {
   };
 
   const handleAutoDistribute = async (timeLimitMinutes, currentPeople = peopleCount) => {
+    if (!requireSession()) return;
     setCookingSpeed(`${timeLimitMinutes} phút`);
     
     try {
@@ -99,6 +166,7 @@ const SmartFridgePage = () => {
         setDishDistribution({ easy: easy || 0, medium: medium || 0, hard: hard || 0 });
       }
     } catch (error) {
+      if (error.response?.status === 401) return;
       console.error("Lỗi khi dùng AI chia món:", error);
       // Fallback logic
       let target = Math.min(6, currentPeople > 3 ? currentPeople : currentPeople + 1);
@@ -115,6 +183,7 @@ const SmartFridgePage = () => {
   };
 
   const handleGetSuggestions = async () => {
+    if (!requireSession()) return;
     if (fridgeItems.length === 0) {
       setError("Vui lòng thêm ít nhất một nguyên liệu vào tủ lạnh!");
       return;
@@ -181,7 +250,7 @@ const SmartFridgePage = () => {
     <div className="bg-surface text-on-surface font-body-md min-h-screen flex flex-col">
       <Header />
 
-      <main style={{ maxWidth: 1100, margin: "0 auto", width: "100%", padding: "40px 16px" }} className="flex-grow">
+      <main className="smart-fridge-main flex-grow w-full px-6 sm:px-10 md:px-14 lg:px-20 xl:px-24 py-10">
 
         {/* ═══ BANNER ═══ */}
         <div style={{ textAlign: "center", marginBottom: 40 }}>
@@ -337,7 +406,7 @@ const SmartFridgePage = () => {
               <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#1b1c1c", marginBottom: 8 }}>
                 Số lượng món theo độ khó (Tổng: {dishDistribution.easy + dishDistribution.medium + dishDistribution.hard} món):
               </label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: 12 }}>
                 {/* Dễ */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f5f3f3", borderRadius: 12, padding: "6px 12px", border: "1px solid rgba(225,191,183,0.3)" }}>
                   <span style={{ fontSize: 13, color: "#166534", fontWeight: 600 }}>Món dễ</span>
@@ -409,7 +478,7 @@ const SmartFridgePage = () => {
         <div id="ai-results">
           {loading ? (
             <div style={{ background: "#fff", borderRadius: 16, border: "1px solid rgba(225,191,183,0.15)", padding: 32, boxShadow: "0 4px 20px rgba(72,72,72,0.06)" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))", gap: 20 }}>
                 {Array.from({ length: dishDistribution.easy + dishDistribution.medium + dishDistribution.hard || 3 }).map((_, i) => (
                   <div key={i} className="animate-pulse" style={{ border: "1px solid rgba(225,191,183,0.1)", borderRadius: 14, padding: 20, background: "rgba(245,243,243,0.5)" }}>
                     <div style={{ height: 18, background: "rgba(228,226,226,0.5)", borderRadius: 6, width: "70%", marginBottom: 12 }}></div>
@@ -441,6 +510,12 @@ const SmartFridgePage = () => {
                 </button>
               </div>
 
+              <p className="text-xs text-secondary mb-4 px-1">Gia vị cơ bản như muối, đường, nước mắm, nước tương, hạt tiêu, dầu ăn, hạt nêm, bột ngọt và nước lọc được coi là có sẵn, không tính vào nguyên liệu cần mua thêm.</p>
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <button type="button" className="px-4 py-3 rounded-xl bg-primary text-white disabled:opacity-50" disabled={pdfBusy||!allMissingIngredients.length} onClick={async()=>{setPdfBusy(true);setPdfError('');try{await downloadShoppingPdf({items:allMissingIngredients.map(formatIngredientDisplay),recipes:suggestions,peopleCount:suggestions[0]?.servings||peopleCount});}catch(error){setPdfError(error.message||'Chưa tải được PDF. Bạn thử lại nhé.');}finally{setPdfBusy(false);}}}>{pdfBusy?'Đang tạo PDF…':'Tải danh sách đi chợ PDF'}</button>
+                {!allMissingIngredients.length&&<span className="text-sm">Bạn không cần mua thêm nguyên liệu.</span>}
+                {pdfError&&<p role="alert" className="text-red-700">{pdfError}</p>}
+              </div>
               {/* Tổng hợp nguyên liệu cần mua thêm */}
               {allMissingIngredients.length > 0 && (
                 <div style={{ background: "#fffbeb", border: "1px solid #fde68a", padding: "16px 20px", borderRadius: 12, marginBottom: 20, boxShadow: "0 2px 8px rgba(72,72,72,0.04)" }}>
@@ -448,14 +523,18 @@ const SmartFridgePage = () => {
                     <span className="material-symbols-outlined" style={{ fontSize: 18 }}>shopping_cart_checkout</span> 
                     Danh sách nguyên liệu cần mua thêm cho bữa ăn này:
                   </p>
-                  <ul style={{ fontSize: 13, color: "#59413b", listStyle: "disc", paddingLeft: 22, lineHeight: "24px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "4px 16px" }}>
-                    {allMissingIngredients.map((ing, idx) => <li key={idx}>{ing}</li>)}
+                  <ul style={{ fontSize: 13, color: "#59413b", listStyle: "disc", paddingLeft: 22, lineHeight: "24px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "6px 20px" }}>
+                    {allMissingIngredients.map((ing, idx) => (
+                      <li key={idx} className="font-medium text-amber-950">
+                        {formatIngredientDisplay(ing)}
+                      </li>
+                    ))}
                   </ul>
                 </div>
               )}
 
               {/* Grid món ăn */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 320px), 1fr))", gap: 20 }}>
                 {suggestions.map((recipe, index) => (
                   <div key={recipe.recipeId ? `recipe-${recipe.recipeId}` : `ai-${index}`} style={{ background: "#fff", borderRadius: 16, border: "1px solid rgba(225,191,183,0.15)", padding: 20, boxShadow: "0 4px 20px rgba(72,72,72,0.06)", display: "flex", flexDirection: "column", transition: "all 0.2s" }}>
 
@@ -468,9 +547,16 @@ const SmartFridgePage = () => {
                         )}
                         <div className="flex flex-wrap gap-2 mb-2 text-xs font-bold">
                           <span className="rounded-full bg-primary/10 text-primary px-2 py-1">Có trên CulinShare</span>
+                          {recipe.matchType === "rag" && <span className="rounded-full bg-green-50 text-green-800 px-2 py-1">Tìm bằng RAG</span>}
                           {recipe.matchType === "similar" && <span className="rounded-full bg-amber-50 text-amber-800 px-2 py-1">Công thức tương tự</span>}
                         </div>
                         <p className="text-xs text-secondary mb-2">Bởi {recipe.authorName || "Thành viên CulinShare"}</p>
+                        {recipe.totalIngredientCount > 0 && (
+                          <p className="text-xs text-primary font-bold mb-2" title="Mức khớp loại nguyên liệu do AI đối chiếu trong ngữ cảnh công thức truy xuất. Cần kiểm tra lại nếu tên nhập chưa rõ; định lượng thiếu được tính riêng.">
+                            Có khoảng {recipe.matchedIngredientCount}/{recipe.totalIngredientCount} loại nguyên liệu · Khớp {Math.round(recipe.ingredientCoverage * 100)}%
+                          </p>
+                        )}
+                        {recipe.matchType === "ingredients" && <p className="text-xs text-secondary mb-2">Đề xuất từ nguyên liệu trong tủ lạnh của bạn.</p>}
                         {recipe.matchType === "similar" && <p className="text-xs text-secondary mb-2">Phù hợp với gợi ý: {recipe.suggestedName}</p>}
                         <p className="text-xs text-secondary mb-2">
                           {recipe.quantityNeedsReview ? "Công thức chưa có khẩu phần gốc; cần kiểm tra định lượng." : `Nguyên liệu đã quy đổi cho ${recipe.servings} người. Xem khẩu phần gốc trong bài viết.`}
@@ -512,16 +598,26 @@ const SmartFridgePage = () => {
                     </div>
 
                     {/* Nguyên liệu */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16, flex: 1 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16, flex: 1 }}>
+                      {recipe.ingredients?.length > 0 && (
+                        <div className="bg-surface-container-low border border-outline-variant/20 rounded-xl p-3">
+                          <p className="text-xs font-bold text-on-surface mb-2 flex items-center gap-1"><span className="material-symbols-outlined text-sm">restaurant_menu</span>Nguyên liệu món ăn:</p>
+                          <ul className="flex flex-wrap gap-1.5 text-xs text-secondary">
+                            {recipe.ingredients.map((ingredient, index) => <li key={index} className="bg-white rounded-lg px-2 py-1 border border-outline-variant/15">{recipeIngredientLabel(ingredient)}</li>)}
+                          </ul>
+                        </div>
+                      )}
                       <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: 12, borderRadius: 12 }}>
                         <p style={{ fontSize: 12, fontWeight: 700, color: "#166534", display: "flex", alignItems: "center", gap: 4, marginBottom: 6 }}>
                           <span className="material-symbols-outlined" style={{ fontSize: 14 }}>check_circle</span>
                           Từ tủ lạnh:
                         </p>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                           {!recipe.fridgeIngredientsUsed?.length && <span className="text-xs text-secondary">Chưa xác định được nguyên liệu có sẵn phù hợp.</span>}
                           {recipe.fridgeIngredientsUsed?.map((ing, idx) => (
-                            <span key={idx} style={{ fontSize: 11, background: "#dcfce7", color: "#166534", padding: "2px 8px", borderRadius: 12 }}>{ing}</span>
+                            <span key={idx} style={{ fontSize: 12, background: "#dcfce7", color: "#166534", padding: "3px 10px", borderRadius: 10, fontWeight: 600 }}>
+                              {formatIngredientDisplay(ing)}
+                            </span>
                           ))}
                         </div>
                       </div>
@@ -532,9 +628,11 @@ const SmartFridgePage = () => {
                             <span className="material-symbols-outlined" style={{ fontSize: 14 }}>shopping_cart</span>
                             Cần mua thêm:
                           </p>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                             {recipe.additionalIngredientsNeeded.map((ing, idx) => (
-                              <span key={idx} style={{ fontSize: 11, background: "#fef3c7", color: "#92400e", padding: "2px 8px", borderRadius: 12 }}>{ing}</span>
+                              <span key={idx} style={{ fontSize: 12, background: "#fef3c7", color: "#92400e", padding: "3px 10px", borderRadius: 10, fontWeight: 600 }}>
+                                {formatIngredientDisplay(ing)}
+                              </span>
                             ))}
                           </div>
                         </div>
@@ -543,19 +641,24 @@ const SmartFridgePage = () => {
 
                     {/* Nút xem chi tiết */}
                     {recipe.source === "culinshare" ? (
-                      <Link to={`/recipe/${recipe.recipeId}`} className="w-full py-3 bg-primary text-white rounded-xl text-center font-bold text-sm flex items-center justify-center gap-2">
+                      <Link to={`/recipe/${recipe.recipeId}`} className="w-full py-3 bg-primary text-white rounded-xl text-center font-bold text-sm flex items-center justify-center gap-2 shadow-sm hover:bg-primary/90 transition-all">
                         <span className="material-symbols-outlined text-base">menu_book</span>
                         Xem công thức trên CulinShare
                       </Link>
-                    ) : <button
-                      onClick={() => setActiveRecipe(recipe)}
-                      style={{ width: "100%", padding: "10px 0", background: "#f5f3f3", border: "1px solid rgba(225,191,183,0.25)", borderRadius: 12, color: "#ab2e10", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s" }}
-                      onMouseEnter={(e) => { e.target.style.background = "#ab2e10"; e.target.style.color = "#fff"; e.target.style.borderColor = "#ab2e10"; }}
-                      onMouseLeave={(e) => { e.target.style.background = "#f5f3f3"; e.target.style.color = "#ab2e10"; e.target.style.borderColor = "rgba(225,191,183,0.25)"; }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>menu_book</span>
-                      Xem hướng dẫn nấu chi tiết
-                    </button>}
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setModalCheckedIngredients([]);
+                          setActiveRecipe(recipe);
+                        }}
+                        style={{ width: "100%", padding: "11px 0", background: "#f5f3f3", border: "1px solid rgba(225,191,183,0.3)", borderRadius: 12, color: "#ab2e10", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s" }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = "#ab2e10"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "#ab2e10"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "#f5f3f3"; e.currentTarget.style.color = "#ab2e10"; e.currentTarget.style.borderColor = "rgba(225,191,183,0.3)"; }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>menu_book</span>
+                        Xem hướng dẫn nấu chi tiết
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -582,75 +685,180 @@ const SmartFridgePage = () => {
         </div>
       </main>
 
-      {/* ═══ MODAL CHI TIẾT CÔNG THỨC ═══ */}
+      {/* ═══ MODAL CHI TIẾT CÔNG THỨC (FORMAT NHƯ RECIPEDETAILPAGE) ═══ */}
       {activeRecipe && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)", backdropFilter: "blur(4px)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: "#fbf9f8", borderRadius: 16, border: "1px solid rgba(225,191,183,0.15)", maxWidth: 640, width: "100%", maxHeight: "88vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 20px 50px -20px rgba(15,23,42,0.35)" }}>
+          <div style={{ background: "#fbf9f8", borderRadius: 20, border: "1px solid rgba(225,191,183,0.2)", maxWidth: 680, width: "100%", maxHeight: "90vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 25px 50px -12px rgba(15,23,42,0.4)" }}>
 
             {/* Header */}
-            <div style={{ background: "#f5f3f3", borderBottom: "1px solid rgba(225,191,183,0.15)", padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div style={{ background: "#f5f3f3", borderBottom: "1px solid rgba(225,191,183,0.2)", padding: "18px 24px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
-                <span style={{ fontSize: 10, textTransform: "uppercase", fontWeight: 700, color: "#ab2e10", letterSpacing: 1.5 }}>Công thức nấu ăn do AI tạo</span>
-                <h3 className="font-display font-bold" style={{ fontSize: 22, color: "#1b1c1c", marginTop: 2 }}>{activeRecipe.name}</h3>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-2.5 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase tracking-wider">
+                    Gợi ý từ AI
+                  </span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${
+                    activeRecipe.difficulty === "dễ" ? "bg-green-100 text-green-800" : activeRecipe.difficulty === "trung bình" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-800"
+                  }`}>
+                    {activeRecipe.difficulty}
+                  </span>
+                </div>
+                <h3 className="font-display font-bold text-2xl text-on-surface mt-1">{activeRecipe.name}</h3>
+                <p className="text-xs text-on-surface-variant mt-1">{activeRecipe.description}</p>
               </div>
-              <button onClick={() => setActiveRecipe(null)} style={{ background: "#fbf9f8", border: "1px solid rgba(225,191,183,0.2)", width: 32, height: 32, borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginLeft: 16 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18, color: "#665e49" }}>close</span>
+              <button
+                onClick={() => setActiveRecipe(null)}
+                className="w-8 h-8 rounded-full bg-white border border-outline-variant/30 flex items-center justify-center text-secondary hover:text-primary transition-colors flex-shrink-0 ml-4 shadow-sm"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
               </button>
             </div>
 
             {/* Body */}
             <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
 
-              {/* Thông tin nhanh */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20, padding: 12, background: "#f5f3f3", borderRadius: 12, fontSize: 12, fontWeight: 600, color: "#665e49" }}>
-                <span style={{ background: "rgba(171,46,16,0.1)", color: "#ab2e10", padding: "4px 10px", borderRadius: 8 }}>{peopleCount} người ăn</span>
-                <span style={{ padding: "4px 10px", background: "#f0eded", borderRadius: 8 }}>Độ khó: {activeRecipe.difficulty}</span>
-                <span style={{ padding: "4px 10px", background: "#f0eded", borderRadius: 8 }}>Chuẩn bị: {activeRecipe.prepTime}p</span>
-                <span style={{ padding: "4px 10px", background: "#f0eded", borderRadius: 8 }}>Nấu: {activeRecipe.cookTime}p</span>
-                <span style={{ background: "rgba(171,46,16,0.1)", color: "#ab2e10", padding: "4px 10px", borderRadius: 8, fontWeight: 700 }}>Tổng: {(activeRecipe.prepTime || 0) + (activeRecipe.cookTime || 0)}p</span>
-              </div>
-
-              {/* Nguyên liệu */}
-              <h4 style={{ fontSize: 14, fontWeight: 700, color: "#1b1c1c", display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-                <span className="material-symbols-outlined text-primary" style={{ fontSize: 18 }}>shopping_bag</span>
-                Nguyên liệu cần dùng
-              </h4>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
-                <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: 14, borderRadius: 12 }}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: "#166534", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>check_box</span> Từ tủ lạnh:
-                  </p>
-                  <ul style={{ fontSize: 13, color: "#59413b", listStyle: "disc", paddingLeft: 18, lineHeight: "22px" }}>
-                    {activeRecipe.fridgeIngredientsUsed?.map((ing, idx) => <li key={idx}>{ing}</li>)}
-                  </ul>
+              {/* Thông số món ăn */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 p-3.5 bg-surface-container-low rounded-xl text-xs font-semibold text-secondary">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-base">group</span>
+                  <span>{peopleCount} người ăn</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-base">hourglass_empty</span>
+                  <span>Chuẩn bị: {activeRecipe.prepTime}p</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-base">local_fire_department</span>
+                  <span>Nấu: {activeRecipe.cookTime}p</span>
+                </div>
+                <div className="flex items-center gap-2 text-primary font-bold">
+                  <span className="material-symbols-outlined text-base">schedule</span>
+                  <span>Tổng: {(activeRecipe.prepTime || 0) + (activeRecipe.cookTime || 0)}p</span>
                 </div>
               </div>
 
-              {/* Các bước */}
-              <h4 style={{ fontSize: 14, fontWeight: 700, color: "#1b1c1c", display: "flex", alignItems: "center", gap: 6, marginBottom: 16, paddingBottom: 8, borderBottom: "1px solid rgba(225,191,183,0.15)" }}>
-                <span className="material-symbols-outlined text-primary" style={{ fontSize: 18 }}>format_list_numbered</span>
-                Các bước chế biến
-              </h4>
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                {activeRecipe.steps?.map((step, idx) => (
-                  <div key={idx} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#ab2e10", color: "#fff", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2, boxShadow: "0 2px 4px rgba(171,46,16,0.3)" }}>
-                      {idx + 1}
-                    </div>
-                    <p style={{ fontSize: 14, color: "#59413b", lineHeight: "22px" }}>{step}</p>
+              {/* Nguyên liệu Section - chuẩn format RecipeDetailPage */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-xl font-bold">restaurant_menu</span>
+                    <h4 className="font-headline-sm font-bold text-base text-on-surface">Nguyên liệu cần chuẩn bị</h4>
                   </div>
-                ))}
+                  <span className="text-xs text-on-surface-variant">Tích chọn khi đã chuẩn bị xong</span>
+                </div>
+
+                <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/15 shadow-sm space-y-4">
+                  {activeRecipe.pantryIngredients?.length > 0 && <div>
+                    <p className="text-xs font-bold text-secondary uppercase tracking-wide mb-2">Gia vị cơ bản có sẵn ({activeRecipe.pantryIngredients.length})</p>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-secondary">
+                      {activeRecipe.pantryIngredients.map((ingredient, index) => <li key={index} className="p-2 rounded-lg bg-surface-container-low">{recipeIngredientLabel(ingredient)}</li>)}
+                    </ul>
+                  </div>}
+                  {/* Nguyên liệu từ tủ lạnh */}
+                  {activeRecipe.fridgeIngredientsUsed?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-bold text-green-700 uppercase tracking-wide flex items-center gap-1.5 mb-2">
+                        <span className="material-symbols-outlined text-sm">check_circle</span>
+                        Có sẵn trong tủ lạnh ({activeRecipe.fridgeIngredientsUsed.length})
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {activeRecipe.fridgeIngredientsUsed.map((ing, idx) => {
+                          const key = `fridge-${idx}`;
+                          const isChecked = modalCheckedIngredients.includes(key);
+                          const formatted = formatIngredientDisplay(ing);
+                          return (
+                            <label key={key} className="flex items-center gap-2.5 cursor-pointer p-2 rounded-lg hover:bg-surface-container transition-colors select-none">
+                              <input
+                                type="checkbox"
+                                className="hidden"
+                                checked={isChecked}
+                                onChange={() => toggleModalIngredient(key)}
+                              />
+                              <span className={`w-4 h-4 border-2 rounded flex items-center justify-center transition-colors flex-shrink-0 ${
+                                isChecked ? "bg-primary border-primary text-white" : "border-outline-variant"
+                              }`}>
+                                {isChecked && <span className="material-symbols-outlined text-[12px] font-bold">check</span>}
+                              </span>
+                              <span className={`text-sm ${isChecked ? "line-through opacity-50 text-on-surface-variant" : "text-on-surface font-medium"}`}>
+                                {formatted}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Nguyên liệu cần mua thêm */}
+                  {activeRecipe.additionalIngredientsNeeded?.length > 0 && (
+                    <div className={activeRecipe.fridgeIngredientsUsed?.length > 0 ? "pt-3 border-t border-outline-variant/15" : ""}>
+                      <p className="text-xs font-bold text-amber-800 uppercase tracking-wide flex items-center gap-1.5 mb-2">
+                        <span className="material-symbols-outlined text-sm">shopping_cart</span>
+                        Cần mua / chuẩn bị thêm ({activeRecipe.additionalIngredientsNeeded.length})
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {activeRecipe.additionalIngredientsNeeded.map((ing, idx) => {
+                          const key = `missing-${idx}`;
+                          const isChecked = modalCheckedIngredients.includes(key);
+                          const formatted = formatIngredientDisplay(ing);
+                          return (
+                            <label key={key} className="flex items-center gap-2.5 cursor-pointer p-2 rounded-lg hover:bg-surface-container transition-colors select-none">
+                              <input
+                                type="checkbox"
+                                className="hidden"
+                                checked={isChecked}
+                                onChange={() => toggleModalIngredient(key)}
+                              />
+                              <span className={`w-4 h-4 border-2 rounded flex items-center justify-center transition-colors flex-shrink-0 ${
+                                isChecked ? "bg-primary border-primary text-white" : "border-outline-variant"
+                              }`}>
+                                {isChecked && <span className="material-symbols-outlined text-[12px] font-bold">check</span>}
+                              </span>
+                              <span className={`text-sm ${isChecked ? "line-through opacity-50 text-on-surface-variant" : "text-on-surface font-medium"}`}>
+                                {formatted}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Các bước chế biến - format card từng bước giống RecipeDetailPage */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="material-symbols-outlined text-primary text-xl font-bold">cooking</span>
+                  <h4 className="font-headline-sm font-bold text-base text-on-surface">Các bước chế biến</h4>
+                </div>
+
+                <div className="space-y-3">
+                  {activeRecipe.steps?.map((step, idx) => (
+                    <div key={idx} className="flex gap-4 p-4 rounded-xl border border-outline-variant/15 bg-surface-container-lowest hover:bg-surface-container-low transition-all">
+                      <div className="w-10 h-10 rounded-full bg-primary text-white font-bold flex items-center justify-center flex-shrink-0 text-sm shadow-sm mt-0.5">
+                        {idx + 1}
+                      </div>
+                      <div className="flex-grow">
+                        <h5 className="text-xs font-bold text-primary uppercase tracking-wider mb-1">
+                          Bước {idx + 1}
+                        </h5>
+                        <p className="text-sm text-on-surface leading-relaxed">{step}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Footer */}
             <div style={{ background: "#f5f3f3", borderTop: "1px solid rgba(225,191,183,0.15)", padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <p style={{ fontSize: 11, color: "rgba(102,94,73,0.45)" }}>Công thức được tạo bởi Gemini AI</p>
+              <p style={{ fontSize: 11, color: "rgba(102,94,73,0.5)" }}>Công thức gợi ý theo tủ lạnh thông minh CulinShare</p>
               <button
                 onClick={() => setActiveRecipe(null)}
-                style={{ padding: "10px 24px", background: "#ab2e10", color: "#fff", fontWeight: 700, fontSize: 13, borderRadius: 12, border: "none", cursor: "pointer", boxShadow: "0 2px 8px rgba(171,46,16,0.3)" }}
+                className="px-6 py-2.5 bg-primary text-white font-bold text-sm rounded-xl hover:bg-primary/90 transition-all shadow-md active:scale-95 flex items-center gap-2"
               >
-                Bắt đầu nấu nào! 🍳
+                <span>Bắt đầu nấu ngay</span> 🍳
               </button>
             </div>
           </div>

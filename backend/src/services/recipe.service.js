@@ -4,6 +4,7 @@ const followService = require('./follow.service');
 const notificationService = require('./notification.service');
 const userRepository = require('../repositories/user.repository');
 
+const {id:validId,validateUrls}=require('./resourceSecurity');
 class RecipeService {
     generateSlug(title) {
         let slug = title.toLowerCase()
@@ -69,9 +70,10 @@ class RecipeService {
         return detail;
     }
 
-    async getRecipeById(id) {
+    async getRecipeById(id, viewer) {
+        validId(id);
         const recipe = await recipeRepository.findById(id);
-        if (!recipe) {
+        if (!recipe || (recipe.status!=='published' && (!viewer || (Number(viewer.id)!==Number(recipe.author_id)&&viewer.role!=='admin')))) {
             const error = new Error('Không tìm thấy công thức nấu ăn');
             error.statusCode = 404;
             throw error;
@@ -79,9 +81,9 @@ class RecipeService {
         return await this.getRecipeDetail(recipe);
     }
 
-    async getRecipeBySlug(slug) {
+    async getRecipeBySlug(slug, viewer) {
         const recipe = await recipeRepository.findBySlug(slug);
-        if (!recipe) {
+        if (!recipe || (recipe.status!=='published' && (!viewer || (Number(viewer.id)!==Number(recipe.author_id)&&viewer.role!=='admin')))) {
             const error = new Error('Không tìm thấy công thức nấu ăn');
             error.statusCode = 404;
             throw error;
@@ -90,6 +92,7 @@ class RecipeService {
     }
 
     async createRecipe(authorId, data) {
+        validateUrls(data);
         const slug = this.generateSlug(data.title);
         const recipeData = {
             author_id: authorId,
@@ -135,7 +138,7 @@ class RecipeService {
             await recipeRepository.linkCategories(recipeId, categoryIds);
         }
 
-        const newRecipe = await this.getRecipeById(recipeId);
+        const newRecipe = await this.getRecipeById(recipeId,{id:authorId});
 
         // Phát thông báo cho followers của đầu bếp
         try {
@@ -160,6 +163,7 @@ class RecipeService {
     }
 
     async updateRecipe(id, authorId, userRole, data) {
+        validId(id);validateUrls(data);
         const recipe = await recipeRepository.findById(id);
         if (!recipe) {
             const error = new Error('Không tìm thấy công thức nấu ăn');
@@ -215,7 +219,7 @@ class RecipeService {
             await recipeRepository.linkCategories(id, categoryIds);
         }
 
-        return await this.getRecipeById(id);
+        return await this.getRecipeById(id,{id:authorId,role:userRole});
     }
 
     async deleteRecipe(id, authorId, userRole) {

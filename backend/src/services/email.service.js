@@ -47,11 +47,7 @@ class EmailService {
       return info;
     } catch (error) {
       console.error("❌ Lỗi gửi email:", error.message);
-      console.log(`\n======================================================`);
-      console.log(`⚠️ [FALLBACK TESTER] Mã OTP kích hoạt tài khoản của ${toEmail} là: ${otp}`);
-      console.log(`======================================================\n`);
-      // Không ném lỗi ra ngoài để luồng đăng ký của môi trường test không bị gián đoạn
-      return { fallback: true, otp };
+      throw Object.assign(new Error('Chưa gửi được email xác thực. Vui lòng thử lại sau.'),{statusCode:503});
     }
   }
 
@@ -79,10 +75,7 @@ class EmailService {
       return info;
     } catch (error) {
       console.error("❌ Lỗi gửi email:", error.message);
-      console.log(`\n======================================================`);
-      console.log(`⚠️ [FALLBACK TESTER] Mã OTP đặt lại mật khẩu của ${toEmail} là: ${otp}`);
-      console.log(`======================================================\n`);
-      return { fallback: true, otp };
+      throw Object.assign(new Error('Chưa gửi được email xác thực. Vui lòng thử lại sau.'),{statusCode:503});
     }
   }
 }

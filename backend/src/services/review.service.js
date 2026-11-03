@@ -1,9 +1,11 @@
 const reviewRepository = require('../repositories/review.repository');
 
+const {publishedRecipe}=require('./resourceSecurity');
 class ReviewService {
     async addReview(userId, recipeId, rating, comment) {
-        const ratingVal = parseInt(rating);
-        if (isNaN(ratingVal) || ratingVal < 1 || ratingVal > 5) {
+        await publishedRecipe(recipeId);
+        const ratingVal = Number(rating);
+        if (!Number.isInteger(ratingVal) || ratingVal < 1 || ratingVal > 5 || (comment!==undefined&&comment!==null&&(typeof comment!=='string'||comment.length>5000))) {
             const error = new Error('Đánh giá phải từ 1 đến 5 sao');
             error.statusCode = 400;
             throw error;
@@ -41,8 +43,8 @@ class ReviewService {
             throw error;
         }
 
-        const ratingVal = parseInt(rating);
-        if (isNaN(ratingVal) || ratingVal < 1 || ratingVal > 5) {
+        const ratingVal = Number(rating);
+        if (!Number.isInteger(ratingVal) || ratingVal < 1 || ratingVal > 5 || (comment!==undefined&&comment!==null&&(typeof comment!=='string'||comment.length>5000))) {
             const error = new Error('Đánh giá phải từ 1 đến 5 sao');
             error.statusCode = 400;
             throw error;

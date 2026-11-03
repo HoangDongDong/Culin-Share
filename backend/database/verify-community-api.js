@@ -1,0 +1,82 @@
+require('dotenv').config({ path: require('node:path').join(__dirname, '../.env') });
+const assert = require('node:assert/strict');
+const pool = require('../src/config/database');
+const service = require('../src/services/community.service');
+const repository = require('../src/repositories/community.repository');
+const notificationService = require('../src/services/notification.service');
+
+async function verify() {
+    const connection = await pool.getConnection();
+    const original = { query: pool.query, getConnection: pool.getConnection, notify: notificationService.createAndNotify };
+    let checks = 0;
+    try {
+        const [users] = await connection.query("SELECT id FROM users WHERE email IN ('community.linh@example.invalid','community.nam@example.invalid') ORDER BY id");
+        assert.equal(users.length, 2, 'Chạy db:seed để có hai tài khoản demo cho kiểm thử.');
+        const author = { id: users[0].id, role: 'user' }, other = { id: users[1].id, role: 'user' };
+        const [[recipe]] = await connection.query("SELECT id FROM recipes WHERE status = 'published' ORDER BY id LIMIT 1");
+        await connection.beginTransaction();
+        // All repository operations share this transaction; no actual notification is emitted.
+        pool.query = (...args) => connection.query(...args);
+        pool.getConnection = async () => ({ query: (...args) => connection.query(...args), beginTransaction: async () => {}, commit: async () => {}, rollback: async () => {}, release() {} });
+        const notifications = [];
+        notificationService.createAndNotify = async item => notifications.push(item);
+        const inserted = await service.create(author, { content: '[KIỂM THỬ ROLLBACK] Bữa ngon nhà mình', recipeIds: recipe ? [recipe.id] : [] }, [{ path: '/test-rollback-only.png' }]);
+        const created = await service.post(inserted.id, author);
+        assert.equal(created.author_id, author.id); assert.equal(created.media.length, 1); checks++;
+        assert.equal(created.recipes.length, recipe ? 1 : 0); checks++;
+        await service.save(created.id,other,true); await service.save(created.id,other,true);
+        assert.equal(Boolean((await service.post(created.id,other)).saved),true); checks++;
+        assert.ok((await service.feed({tab:'saved'},other)).posts.some(item=>item.id===created.id)); checks++;
+        await service.save(created.id,other,false);
+        assert.equal(Boolean((await service.post(created.id,other)).saved),false); checks++;
+        const activity = {title:'Kiểm thử hoạt động rollback',description:'Không phải sự kiện thật',startsAt:new Date(Date.now()-3600000).toISOString(),endsAt:new Date(Date.now()+3600000).toISOString(),location:'Môi trường kiểm thử'};
+        await assert.rejects(service.createActivity('challenge',author,activity),error=>error.statusCode===403); checks++;
+        const challenge = await service.createActivity('challenge',{...author,role:'admin'},activity);
+        await service.participate('challenge',challenge.id,other,true); await service.participate('challenge',challenge.id,other,true);
+        const [[joined]] = await connection.query('SELECT COUNT(*) AS total FROM community_challenge_participants WHERE challenge_id=?',[challenge.id]);
+        assert.equal(joined.total,1); checks++;
+        const challengePost = await service.create(other,{content:'Bài dự thi kiểm thử',topic:'vietnamese',kind:'challenge',challengeId:challenge.id},[]);
+        assert.ok((await service.feed({kind:'challenge',topic:'vietnamese',challengeId:challenge.id},other)).posts.some(item=>item.id===challengePost.id)); checks++;
+        const event = await service.createActivity('event',{...author,role:'admin'},activity);
+        await service.participate('event',event.id,other,true);
+        const meta = await repository.metadata(other.id);
+        assert.ok(meta.events.some(item=>item.id===event.id&&item.registered)); checks++;
+        await service.participate('event',event.id,other,false);
+        const [[registered]] = await connection.query('SELECT COUNT(*) AS total FROM community_event_registrations WHERE event_id=?',[event.id]);
+        assert.equal(registered.total,0); checks++;
+        assert.ok((await service.feed({ q: '[KIỂM THỬ ROLLBACK]' }, null)).posts.some(post => post.id === created.id)); checks++;
+        await assert.rejects(service.update(created.id, other, 'Forbidden'), error => error.statusCode === 403); checks++;
+        await assert.rejects(service.remove(created.id, other), error => error.statusCode === 403); checks++;
+        assert.equal((await service.update(created.id, author, 'Nội dung đã chỉnh sửa')).content, 'Nội dung đã chỉnh sửa'); checks++;
+        await service.like(created.id, other, true); await service.like(created.id, other, true);
+        assert.equal((await repository.find(created.id, other.id)).like_count, 1); checks++;
+        assert.equal(notifications.filter(item => item.type === 'community_like').length, 1); checks++;
+        await service.like(created.id, other, false);
+        assert.equal((await repository.find(created.id, other.id)).like_count, 0); checks++;
+        const comment = await service.addComment(created.id, other, { content: 'Bình luận thử' });
+        await service.addComment(created.id, author, { content: 'Trả lời thử', parentId: comment.id });
+        const thread = await service.comments(created.id, null, 0);
+        assert.equal(thread.comments.length, 2); assert.equal(thread.comments[1].parent_id, comment.id); checks++;
+        await service.reportComment(thread.comments[1].id, other, { reason: 'other', description: 'Báo cáo bình luận kiểm thử' });
+        const [[commentReports]] = await connection.query('SELECT COUNT(*) AS total FROM community_reports WHERE comment_id = ?', [thread.comments[1].id]);
+        assert.equal(commentReports.total, 1); checks++;
+        const second = await service.create(author, { content: 'Bài thứ hai', recipeIds: [] }, []);
+        await assert.rejects(service.addComment(second.id, other, { content: 'Sai bài', parentId: comment.id }), error => error.statusCode === 400); checks++;
+        await assert.rejects(service.removeComment(comment.id, author), error => error.statusCode === 403); checks++;
+        await service.removeComment(comment.id, other);
+        assert.equal((await service.comments(created.id, null, 0)).comments.length, 1); checks++;
+        await service.report(created.id, other, { reason: 'other', description: 'Báo cáo kiểm thử sẽ rollback' });
+        await service.report(created.id, other, { reason: 'spam' });
+        const [[reports]] = await connection.query('SELECT COUNT(*) AS total FROM community_reports WHERE post_id = ?', [created.id]);
+        assert.equal(reports.total, 1); checks++;
+        await service.remove(created.id, author);
+        await assert.rejects(service.post(created.id, null), error => error.statusCode === 404); checks++;
+        await assert.rejects(service.feed({ tab: 'following' }, null), error => error.statusCode === 401); checks++;
+        console.log(`Community API/service: ${checks} checks passed. All created posts, likes, comments, reports will be rolled back; no notifications sent.`);
+    } finally {
+        pool.query = original.query; pool.getConnection = original.getConnection;
+        notificationService.createAndNotify = original.notify;
+        await connection.rollback(); connection.release();
+    }
+}
+verify().catch(error => { console.error(error.message || error.code); process.exitCode = 1; }).finally(() => pool.end());

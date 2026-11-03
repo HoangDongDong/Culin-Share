@@ -14,11 +14,11 @@ class NotificationRepository {
      * @returns {number} insertId
      */
     async create(notificationData) {
-        const { user_id, sender_id, type, recipe_id, message } = notificationData;
+        const { user_id, sender_id, type, recipe_id, post_id, community_comment_id, message } = notificationData;
         const [result] = await pool.query(
-            `INSERT INTO notifications (user_id, sender_id, type, recipe_id, message)
-             VALUES (?, ?, ?, ?, ?)`,
-            [user_id, sender_id, type, recipe_id || null, message]
+            `INSERT INTO notifications (user_id, sender_id, type, recipe_id, post_id, community_comment_id, message)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [user_id, sender_id, type, recipe_id || null, post_id || null, community_comment_id || null, message]
         );
         return result.insertId;
     }

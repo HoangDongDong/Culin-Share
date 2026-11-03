@@ -328,7 +328,7 @@ const AdminDashboardPage = () => {
       <div className="ml-64 flex-grow flex flex-col min-h-screen">
         <AdminHeader />
         
-        <main className="p-gutter max-w-max-width mx-auto w-full flex-grow">
+        <main className="p-gutter px-6 sm:px-10 md:px-14 lg:px-20 xl:px-24 w-full flex-grow">
           {error && (
             <div className="mb-md bg-error-container/30 border border-error text-error p-md rounded-xl text-sm flex items-center gap-2">
               <span className="material-symbols-outlined text-[18px]">error</span>
@@ -906,7 +906,7 @@ const AdminDashboardPage = () => {
         
         {/* Footer */}
         <footer className="w-full py-xl border-t border-outline-variant/20 bg-surface-container-highest select-none mt-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center px-margin-desktop w-full max-w-max-width mx-auto gap-md">
+          <div className="flex flex-col md:flex-row justify-between items-center px-6 sm:px-10 md:px-14 lg:px-20 xl:px-24 w-full gap-md">
             <div className="flex flex-col items-center md:items-start">
               <span className="font-headline-sm text-headline-sm font-bold text-on-surface mb-2 font-display-md text-primary">CulinShare</span>
               <p className="font-body-md text-body-md text-on-surface-variant">© {new Date().getFullYear()} CulinShare. Crafted for home chefs.</p>
