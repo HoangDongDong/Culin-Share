@@ -29,11 +29,11 @@ class RecipeRepository {
             SELECT r.*, u.full_name AS author_name, u.avatar_url AS author_avatar,
                    COALESCE(avg_rev.avg_rating, 0) AS average_rating,
                    COALESCE(avg_rev.rev_count, 0) AS review_count,
-                   GROUP_CONCAT(c.name) AS category_list
+                   (SELECT GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ',')
+                    FROM recipe_categories rc JOIN categories c ON rc.category_id = c.id
+                    WHERE rc.recipe_id = r.id) AS category_list
             FROM recipes r
             LEFT JOIN users u ON r.author_id = u.id
-            LEFT JOIN recipe_categories rc ON r.id = rc.recipe_id
-            LEFT JOIN categories c ON rc.category_id = c.id
             LEFT JOIN (
                 SELECT recipe_id, AVG(rating) AS avg_rating, COUNT(*) AS rev_count
                 FROM reviews
@@ -119,7 +119,6 @@ class RecipeRepository {
         const querySql = `
             ${selectSql}
             ${whereSql}
-            GROUP BY r.id
             ${orderSql}
             LIMIT ? OFFSET ?
         `;
