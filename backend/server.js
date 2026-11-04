@@ -101,6 +101,7 @@ app.use('/api', adminRoutes);
 app.use('/api', notificationRoutes);
 app.use('/api', communityRoutes);
 app.use('/api', require('./src/routes/home.routes'));
+app.use('/api', require('./src/routes/seo.routes'));
 
 // User routes: /user/profile, /admin/profile, ...
 app.use('/', userRoutes);
