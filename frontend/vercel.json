@@ -1,5 +1,13 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "culin-share.vercel.app" }],
+      "destination": "https://bepnhaminh.page/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/(.*)", "destination": "/spa.html" }
   ]
 }

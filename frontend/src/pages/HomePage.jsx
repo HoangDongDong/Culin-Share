@@ -25,7 +25,14 @@ const HomePage = () => {
   const locks=useRef(new Set());
   useEffect(()=>{
     const controller=new AbortController();
-    api.get('/api/home',{params:{sort:featuredTab},signal:controller.signal}).then(response=>{setHome(response.data.data);setError('');}).catch(err=>{if(!controller.signal.aborted){setHome(emptyHome);setError(err.response?.data?.message||'Không tải được dữ liệu trang chủ.');}}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});
+    api.get('/api/home',{params:{sort:featuredTab},signal:controller.signal}).then(response=>{
+      if(controller.signal.aborted)return;
+      const data=response.data?.data;
+      if(!data||!Object.keys(emptyHome).every(key=>Array.isArray(data[key]))){
+        throw new Error('Máy chủ trả dữ liệu trang chủ không hợp lệ. Vui lòng kiểm tra cấu hình kết nối API.');
+      }
+      setHome(data);setError('');
+    }).catch(err=>{if(!controller.signal.aborted){setHome(emptyHome);setError(err.response?.data?.message||err.message||'Không tải được dữ liệu trang chủ.');}}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});
     return ()=>controller.abort();
   },[featuredTab,user?.id,revision]);
   const popularCategories=home.categories.map(category=>({...category,count:category.recipe_count+' công thức',image:getImageUrl(category.image)}));

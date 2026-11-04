@@ -6,6 +6,7 @@ import Footer from "../components/Footer";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import DeleteSuccessModal from "../components/DeleteSuccessModal";
 import { getImageUrl } from "../services/api";
+import {applySeo, recipeSeo, routeSeo} from "../services/seo.mjs";
 import {
   getRecipeByIdApi,
   submitReviewApi,
@@ -37,7 +38,6 @@ const RecipeDetailPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleteSuccessOpen, setIsDeleteSuccessOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const userHasHealthStats = user?.height && user?.weight;
   
@@ -87,6 +87,7 @@ const RecipeDetailPage = () => {
   const fetchRecipeDetails = async () => {
     try {
       setLoading(true);
+      setRecipe(null);
       const data = await getRecipeByIdApi(id);
       setRecipe(data);
 
@@ -107,13 +108,13 @@ const RecipeDetailPage = () => {
   };
 
   useEffect(() => {
-    if (!token || token === "null" || token === "undefined") {
-      setShowAuthModal(true);
-      setLoading(false);
-      return;
-    }
     fetchRecipeDetails();
   }, [id, token]);
+
+  useEffect(() => {
+    if(recipe && String(recipe.id) === String(id)) applySeo(recipeSeo(recipe));
+    else if(!loading) applySeo({...routeSeo(`/recipe/${id}`), title:"Không tìm thấy công thức | CulinShare", noindex:true});
+  }, [recipe,id,loading]);
 
   const handleIngredientToggle = (idx) => {
     setCheckedIngredients((prev) =>
@@ -222,70 +223,6 @@ const RecipeDetailPage = () => {
           <span className="material-symbols-outlined text-5xl text-primary animate-spin">progress_activity</span>
           <p className="mt-4 text-on-surface-variant">Đang tải chi tiết công thức...</p>
         </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (showAuthModal) {
-    return (
-      <div className="bg-surface text-on-surface font-body-md min-h-screen flex flex-col">
-        <Header />
-        
-        {/* Modal Backdrop blur */}
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          {/* Modal Container */}
-          <div 
-            className="bg-white border border-outline-variant/10 rounded-2xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl"
-            style={{
-              animation: 'fadeSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-            }}
-          >
-            {/* Lock Icon */}
-            <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-5">
-              <span className="material-symbols-outlined text-3xl font-bold">lock</span>
-            </div>
-            
-            {/* Content */}
-            <h2 className="text-2xl font-bold text-on-surface mb-3">Yêu cầu Đăng nhập</h2>
-            <p className="text-sm text-on-surface-variant leading-relaxed mb-6">
-              Bạn cần đăng nhập tài khoản CulinShare để có thể khám phá đầy đủ nguyên liệu, định lượng và xem các bước hướng dẫn nấu ăn chi tiết của công thức này.
-            </p>
-            
-            {/* Buttons */}
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => navigate("/login")}
-                className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-full transition-all active:scale-95 shadow-md flex items-center justify-center gap-2"
-              >
-                <span className="material-symbols-outlined text-sm font-bold">login</span>
-                Đăng nhập ngay
-              </button>
-              
-              <button
-                onClick={() => navigate("/")}
-                className="w-full bg-transparent hover:bg-surface-container-low text-secondary font-semibold py-2.5 rounded-full transition-all active:scale-95 border border-outline-variant/30"
-              >
-                Quay lại trang chủ
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* CSS Keyframes inline */}
-        <style>{`
-          @keyframes fadeSlideIn {
-            from {
-              opacity: 0;
-              transform: translateY(-20px) scale(0.95);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0) scale(1);
-            }
-          }
-        `}</style>
-        
         <Footer />
       </div>
     );

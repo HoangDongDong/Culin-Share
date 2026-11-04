@@ -1,6 +1,7 @@
 import { Route, Routes, useLocation } from "react-router-dom";
 import {useEffect} from 'react';
 import MobileNavigation from './components/MobileNavigation';
+import RouteSeo from './components/RouteSeo';
 import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -28,6 +29,7 @@ function App() {
   useEffect(()=>{window.scrollTo({top:0,left:0,behavior:'auto'});},[pathname]);
   return (
     <div className="app-shell" data-page={page}>
+    <RouteSeo/>
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/search" element={<SearchPage />} />

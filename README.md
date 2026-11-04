@@ -198,3 +198,4 @@ Các cơ chế trên không thay thế việc kiểm thử bảo mật và hiệ
 - [Tủ lạnh AI: kiến trúc RAG, cấu hình và giới hạn](backend/README-RAG.md)
 - [Tìm kiếm, index MySQL, PDF và các thay đổi bảo mật](docs/search-pdf-security.md)
 - [Giao diện mobile và phạm vi kiểm tra](docs/mobile-ui.md)
+- [SEO, sitemap, công thức công khai và Google Search Console](docs/seo.md)

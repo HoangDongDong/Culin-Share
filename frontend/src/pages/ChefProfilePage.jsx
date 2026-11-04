@@ -5,6 +5,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import RecipeCard from "../components/RecipeCard";
 import { getImageUrl } from "../services/api";
+import {applySeo, routeSeo, plainText} from "../services/seo.mjs";
 import {
   getChefProfileApi,
   searchRecipesApi,
@@ -29,6 +30,11 @@ const ChefProfilePage = () => {
   const [following, setFollowing] = useState([]);
   const [isFollowed, setIsFollowed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(()=>{
+    if(chef && String(chef.id)===String(id))applySeo({...routeSeo(`/chef/${id}`),title:`${plainText(chef.full_name || chef.username)} – Công thức nấu ăn | CulinShare`,description:plainText(chef.bio).slice(0,170)||'Khám phá công thức và bài chia sẻ từ tác giả trên CulinShare – Bếp Nhà Mình.'});
+    else if(!isLoading)applySeo({...routeSeo(`/chef/${id}`),noindex:true});
+  },[chef,id,isLoading]);
 
   useEffect(() => {
     const loadChefData = async () => {
