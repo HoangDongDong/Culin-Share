@@ -31,3 +31,13 @@ test('snapshot HTML and JSON-LD cannot break out through stored recipe content',
   assert.equal(JSON.parse(jsonLd({name:attack})).name,attack);
   assert.equal(imageUrl('javascript:alert(1)'),undefined);
 });
+test('categories and public community posts have distinct metadata; hidden posts stay noindex',async()=>{
+  const {categorySeo,postSeo}=await seo;
+  const category=categorySeo({slug:'mon-viet',name:'Món Việt',description:'Món ngon Việt Nam'});
+  assert.equal(category.url,'https://bepnhaminh.page/category/mon-viet');assert.ok(category.title.includes('Món Việt'));
+  const post={id:7,status:'published',title:'Cách nấu phở',content:'Chia sẻ bí quyết nấu phở.',author_name:'Tác giả'};
+  assert.equal(postSeo(post).schema['@type'],'DiscussionForumPosting');
+  assert.equal(postSeo(post).url,'https://bepnhaminh.page/community/posts/7');
+  assert.equal(postSeo({...post,status:'hidden'}).noindex,true);
+  assert.equal(postSeo({...post,deleted_at:'2026-11-04'}).noindex,true);
+});

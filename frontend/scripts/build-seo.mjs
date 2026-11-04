@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {loadEnv} from 'vite';
-import {SITE_URL,SITE_NAME,HOME_DESCRIPTION,PUBLIC_PAGES,PRIVATE_PAGES,routeSeo,recipeSeo,escapeHtml as e,jsonLd} from '../src/services/seo.mjs';
+import {SITE_URL,SITE_NAME,HOME_DESCRIPTION,PUBLIC_PAGES,PRIVATE_PAGES,routeSeo,recipeSeo,categorySeo,postSeo,escapeHtml as e,jsonLd} from '../src/services/seo.mjs';
 
 const frontend=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const dist=path.join(frontend,'dist');
@@ -50,9 +50,14 @@ try{
   }
 }catch(error){console.warn(`SEO: chưa lấy đủ công thức từ API (${error.message}); vẫn tạo các trang công khai cơ bản.`);}
 recipes=[...new Map(recipes.map(item=>[item.id,item])).values()];
+let categories=[],postEntries=[];
+try{
+  const {data:catalog}=await getJson('/api/seo/catalog');
+  categories=catalog.categories;postEntries=catalog.posts;
+}catch(error){console.warn(`SEO: chưa lấy được danh mục/bài cộng đồng (${error.message}).`);}
 const urls=Object.keys(PUBLIC_PAGES);
 for(const [url,meta] of Object.entries(PUBLIC_PAGES)){
-  const body=`<h1>${e(meta.title)}</h1><p>${e(meta.description)}</p>`+(url==='/'||url==='/search'?`<h2>Công thức nấu ăn và món ngon mỗi ngày</h2>${links(recipes)}`:'');
+  const body=`<h1>${e(meta.title)}</h1><p>${e(meta.description)}</p>`+(url==='/'||url==='/search'?`<h2>Công thức nấu ăn và món ngon mỗi ngày</h2>${links(recipes)}<h2>Danh mục</h2><ul>${categories.map(category=>`<li><a href="/category/${e(encodeURIComponent(category.slug))}">${e(category.name)}</a></li>`).join('')}</ul>`:'');
   await writePage(url,routeSeo(url),body);
 }
 let snapshots=0;
@@ -68,9 +73,30 @@ for(let i=0;i<recipes.length;i+=4){
     }catch(error){console.warn(`SEO: bỏ snapshot công thức ${Number(item.id)} (${error.message}).`);}
   }));
 }
+for(const category of categories){
+  try{
+    const url='/category/'+encodeURIComponent(category.slug),meta=categorySeo(category);
+    const {data:items}=await getJson('/api/recipes?category='+encodeURIComponent(category.slug)+'&limit=50');
+    await writePage(url,meta,`<h1>${e(category.name)}</h1><p>${e(meta.description)}</p>${links(items)}`);urls.push(url);
+  }catch(error){console.warn(`SEO: bỏ snapshot danh mục (${error.message}).`);}
+}
+const postLinks=[];
+for(let i=0;i<postEntries.length;i+=4){
+  await Promise.all(postEntries.slice(i,i+4).map(async entry=>{
+    try{
+      const {data:post}=await getJson('/api/community/posts/'+Number(entry.id));
+      const meta=postSeo(post);if(meta.noindex)return;
+      const url='/community/posts/'+Number(post.id);
+      await writePage(url,meta,`<article><h1>${e(post.title||post.content.slice(0,90))}</h1><p>Tác giả: ${e(post.author_name||'CulinShare')}</p><p style="white-space:pre-wrap">${e(post.content)}</p>${(post.media||[]).map(media=>`<img src="${e(media.media_url)}" alt="Ảnh bài viết" style="max-width:100%">`).join('')}<h2>Công thức được chia sẻ</h2>${links(post.recipes||[])}</article>`);
+      urls.push(url);postLinks.push({url,title:post.title||post.content.slice(0,90)});
+    }catch(error){console.warn(`SEO: bỏ snapshot bài ${Number(entry.id)} (${error.message}).`);}
+  }));
+}
+await writePage('/community',routeSeo('/community'),`<h1>${e(PUBLIC_PAGES['/community'].title)}</h1><p>${e(PUBLIC_PAGES['/community'].description)}</p><ul>${postLinks.map(post=>`<li><a href="${e(post.url)}">${e(post.title)}</a></li>`).join('')}</ul>`);
 for(const url of PRIVATE_PAGES)await writePage(url,routeSeo(url),`<h1>${e(SITE_NAME)}</h1><p>Chức năng tài khoản và thành viên.</p>`);
 // Unknown/new routes get no incorrect homepage canonical; React adds their own metadata.
 await fs.writeFile(path.join(dist,'spa.html'),renderHtml(template,{...routeSeo('/'),title:SITE_NAME,description:HOME_DESCRIPTION,url:null,schema:null}));
-await fs.writeFile(path.join(dist,'sitemap.xml'),`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.map(url=>`<url><loc>${e(SITE_URL+url)}</loc></url>`).join('')}</urlset>`);
+// Primary /sitemap.xml is rewritten to the live backend; retain a build snapshot for diagnostics.
+await fs.writeFile(path.join(dist,'sitemap-build.xml'),`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.map(url=>`<url><loc>${e(SITE_URL+url)}</loc></url>`).join('')}</urlset>`);
 await fs.writeFile(path.join(dist,'robots.txt'),`User-agent: *\nAllow: /\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 console.log(`SEO: ${urls.length} URL trong sitemap, ${snapshots} công thức có HTML và Recipe JSON-LD.`);

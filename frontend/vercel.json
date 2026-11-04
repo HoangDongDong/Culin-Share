@@ -8,6 +8,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/sitemap.xml", "destination": "https://culin-share-backend.vercel.app/api/seo/sitemap.xml" },
     { "source": "/(.*)", "destination": "/spa.html" }
   ]
 }

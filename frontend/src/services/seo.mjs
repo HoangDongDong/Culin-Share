@@ -19,7 +19,7 @@ export function imageUrl(value) {
 export function routeSeo(pathname, search = '') {
   const path = pathname.replace(/\/$/, '') || '/';
   const page = PUBLIC_PAGES[path];
-  const publicDetail = /^\/(?:recipe|chef)\/[1-9]\d*$/.test(path) || /^\/community\/posts\/[1-9]\d*$/.test(path);
+  const publicDetail = /^\/(?:recipe|chef)\/[1-9]\d*$/.test(path) || /^\/community\/posts\/[1-9]\d*$/.test(path) || /^\/category\/[^/]+$/.test(path);
   return {
     title: page?.title || SITE_NAME,
     description: page?.description || HOME_DESCRIPTION,
@@ -51,6 +51,19 @@ export function recipeSeo(recipe) {
   };
   // Only publish actual content fields; never invent ratings or nutritional units.
   return {...base, title:`${plainText(recipe.title)} – Cách làm và nguyên liệu | CulinShare`, description, image:image || base.image, noindex:false, schema};
+}
+
+export function categorySeo(category) {
+  const base=routeSeo('/category/'+encodeURIComponent(category.slug));
+  return {...base,title:`${plainText(category.name)} – Công thức và cách nấu ngon | CulinShare`,description:plainText(category.description).slice(0,170)||`Khám phá công thức ${plainText(category.name)} và cách nấu từng bước trên CulinShare – Bếp Nhà Mình.`,image:imageUrl(category.image_url)||base.image};
+}
+export function postSeo(post) {
+  const base=routeSeo('/community/posts/'+post.id);
+  if(post.status!=='published'||post.deleted_at)return {...base,noindex:true};
+  const title=plainText(post.title || post.content).slice(0,90);
+  const description=plainText(post.content).slice(0,170);
+  const image=imageUrl(post.media?.[0]?.media_url);
+  return {...base,title:`${title} | Cộng đồng CulinShare`,description,image:image||base.image,schema:{'@context':'https://schema.org','@type':'DiscussionForumPosting',headline:title,text:plainText(post.content),url:base.url,...(image?{image:[image]}:{}),...(post.author_name?{author:{'@type':'Person',name:plainText(post.author_name)}}:{}),...(post.created_at&&Number.isFinite(Date.parse(post.created_at))?{datePublished:new Date(post.created_at).toISOString()}:{} )}};
 }
 
 export function applySeo(meta) {

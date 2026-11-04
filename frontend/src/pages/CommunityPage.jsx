@@ -10,6 +10,7 @@ import CommunityPost from '../components/community/CommunityPost';
 import CommunityDialog from '../components/community/CommunityDialog';
 import CommunityActivityForm from '../components/community/CommunityActivityForm';
 import { communityApi, communityError } from '../services/communityApi';
+import {applySeo,postSeo,routeSeo} from '../services/seo.mjs';
 import './CommunityPage.css';
 
 const panel = 'bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm';
@@ -19,6 +20,12 @@ const eventDate = value => new Date(value).toLocaleString('vi-VN', { timeZone:'A
 function Feed({ tab, topic, query, postId, challengeId, user, requireLogin, onChanged }) {
   const [posts,setPosts]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState('');
   const [page,setPage]=useState(1),[hasMore,setHasMore]=useState(false),[moreBusy,setMoreBusy]=useState(false),[attempt,setAttempt]=useState(0);
+  useEffect(()=>{
+    if(!postId)return;
+    const post=posts.find(item=>String(item.id)===String(postId));
+    if(post)applySeo(postSeo(post));
+    else if(!loading)applySeo({...routeSeo(`/community/posts/${postId}`),noindex:true});
+  },[postId,posts,loading]);
   const params = () => ({tab:['saved','following','mine'].includes(tab)?tab:'latest',topic:topic==='all'?'':topic,kind:tab==='tips'?'tip':tab==='challenges'?'challenge':'',q:query,challengeId:challengeId||'',page:1});
   useEffect(()=>{
     const controller=new AbortController();

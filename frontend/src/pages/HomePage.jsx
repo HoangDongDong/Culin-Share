@@ -167,7 +167,7 @@ const HomePage = () => {
                   {popularCategories.map((cat) => (
                     <Link
                       key={cat.id}
-                      to={`/search?category=${encodeURIComponent(cat.name)}`}
+                      to={`/category/${encodeURIComponent(cat.slug)}`}
                       className="bg-white hover:bg-stone-50 border border-stone-200/80 hover:border-stone-300 rounded-2xl p-2 text-center flex flex-col items-center group shadow-2xs hover:shadow-md transition-all duration-200"
                     >
                       <div className="w-full aspect-square rounded-xl overflow-hidden bg-stone-100 mb-1.5">
