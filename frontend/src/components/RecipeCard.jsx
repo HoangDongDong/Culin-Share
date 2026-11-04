@@ -58,7 +58,7 @@ const RecipeCard = ({ recipe, initiallySaved = false, onSavedChange }) => {
   };
 
   return (
-    <div className="bg-surface-container-lowest rounded-2xl overflow-hidden recipe-card-shadow flex flex-col h-full border border-outline-variant/10 group transition-all duration-300">
+    <div className="mobile-recipe-card bg-surface-container-lowest rounded-2xl overflow-hidden recipe-card-shadow flex flex-col h-full border border-outline-variant/10 group transition-all duration-300">
       <Link to={`/recipe/${recipeId}`} className="relative h-56 overflow-hidden block">
         <img
           alt={recipe.name || recipe.title}

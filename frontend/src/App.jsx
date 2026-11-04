@@ -1,4 +1,6 @@
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
+import {useEffect} from 'react';
+import MobileNavigation from './components/MobileNavigation';
 import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -21,7 +23,11 @@ import ErrorPage from "./pages/ErrorPage.jsx";
 import CommunityPage from "./pages/CommunityPage.jsx";
 
 function App() {
+  const {pathname}=useLocation();
+  const page=pathname==='/'?'home':pathname.split('/')[1];
+  useEffect(()=>{window.scrollTo({top:0,left:0,behavior:'auto'});},[pathname]);
   return (
+    <div className="app-shell" data-page={page}>
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/search" element={<SearchPage />} />
@@ -43,6 +49,8 @@ function App() {
       <Route path="/fridge" element={<RequireAuth><SmartFridgePage /></RequireAuth>} />
       <Route path="*" element={<ErrorPage />} />
     </Routes>
+    <MobileNavigation/>
+    </div>
   );
 }
 

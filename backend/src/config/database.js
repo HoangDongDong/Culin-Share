@@ -9,18 +9,15 @@
  */
 
 const mysql = require('mysql2/promise');
+const databaseOptions = require('./databaseOptions');
 
 // Tạo connection pool với cấu hình từ .env
 const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '123456',
-    database: process.env.DB_NAME || 'CulinShare',
+    ...databaseOptions(),
 
     // Pool configuration
     waitForConnections: true,  // Đợi khi tất cả connections đang bận
-    connectionLimit: 10,       // Số connection tối đa trong pool
+    connectionLimit: 5,        // Giới hạn pool cho mỗi instance
     queueLimit: 0,             // Không giới hạn hàng đợi
     enableKeepAlive: true,     // Giữ kết nối sống
     keepAliveInitialDelay: 0   // Bắt đầu keep-alive ngay lập tức

@@ -274,7 +274,7 @@ const SmartFridgePage = () => {
           </h2>
 
           {/* Input + nút thêm */}
-          <form onSubmit={handleAddItem} style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <form className="mobile-fridge-add" onSubmit={handleAddItem} style={{ display: "flex", gap: 8, marginBottom: 16 }}>
             <input
               type="text"
               placeholder="Tên nguyên liệu (VD: bắp cải)"
@@ -358,7 +358,7 @@ const SmartFridgePage = () => {
           </h2>
 
           {/* 4 hàng options */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
+          <div className="mobile-meal-options" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
 
             {/* Số người */}
             <div>

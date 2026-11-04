@@ -1,176 +1,200 @@
-# 🍳 CulinShare - Premium Recipe Sharing & Community Platform
+# CulinShare — Chia sẻ công thức và cộng đồng yêu bếp
 
-<div align="center">
-  <img src="https://res.cloudinary.com/dofssbkbd/image/upload/v1782819020/mamngon/assets/ruqetfu0x7b3gtjemwjx.jpg" alt="CulinShare Banner" width="100%" max-height="300px" style="border-radius: 16px; object-fit: cover;" />
-  
-  <p align="center">
-    <strong>CulinShare</strong> là một nền tảng mạng xã hội chia sẻ công thức nấu ăn cao cấp, kết nối những người yêu bếp, tôn vinh các đầu bếp tài năng và truyền cảm hứng nấu nướng mỗi ngày thông qua các công nghệ hiện đại.
-  </p>
+CulinShare là ứng dụng web giúp người dùng tìm kiếm, đăng và lưu công thức nấu ăn, chia sẻ bài viết cộng đồng và lên thực đơn từ nguyên liệu sẵn có. Dự án gồm frontend React, backend Express và MySQL. Tủ lạnh AI sử dụng Gemini kết hợp **RAG (Retrieval-Augmented Generation)** để truy xuất công thức trong database trước khi sinh gợi ý.
 
-  [![Vite](https://img.shields.io/badge/Vite-8.x-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
-  [![React](https://img.shields.io/badge/React-18.x-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org/)
-  [![Node.js](https://img.shields.io/badge/Node.js-18.x-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-  [![Express](https://img.shields.io/badge/Express-4.x-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
-  [![MySQL](https://img.shields.io/badge/MySQL-8.x-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
-  [![Socket.io](https://img.shields.io/badge/Socket.io-4.x-010101?style=for-the-badge&logo=socketdotio&logoColor=white)](https://socket.io/)
-</div>
+## Chức năng chính
 
----
+| Nhóm | Chức năng |
+| --- | --- |
+| Tài khoản | Đăng ký, xác minh email bằng OTP, đăng nhập, Google Sign-In, khôi phục mật khẩu, quản lý hồ sơ |
+| Công thức | Đăng/sửa công thức, ảnh bìa và ảnh từng bước, nguyên liệu, khẩu phần, calo, độ khó, thời gian chuẩn bị và nấu |
+| Khám phá | Gợi ý tìm kiếm sau 300 ms, tìm tiếng Việt không dấu, lọc danh mục/độ khó/calo/thời gian, phân trang tại backend |
+| Tương tác | Lưu công thức, đánh giá, bình luận/trả lời, theo dõi tác giả, bảng xếp hạng và thông báo thời gian thực |
+| Tủ lạnh AI | Nhập nguyên liệu và định lượng, chọn số người/số món/độ khó/thời gian, ưu tiên công thức phù hợp từ database, bổ sung gợi ý AI khi cần |
+| Danh sách đi chợ | Tính nguyên liệu còn thiếu cho cả bữa, bỏ qua gia vị cơ bản, xuất PDF tiếng Việt có ô đánh dấu và chia trang |
+| Cộng đồng | Đăng bài kèm ảnh/công thức, tìm và lọc bảng tin, thích, lưu, bình luận, báo cáo, tham gia thử thách và đăng ký sự kiện |
+| Trang chủ | Đọc danh mục, công thức, tác giả nổi bật, bài cộng đồng và công thức được lưu trong tuần từ database |
+| Quản trị | Quản lý người dùng, danh mục, công thức và duyệt bài; tạo thử thách/sự kiện qua API dành cho admin |
+| Mobile | Header gọn, menu và thanh điều hướng dưới, bố cục thích ứng cho trang nội dung, biểu mẫu và quản trị |
 
-## 🌟 Tính Năng Nổi Bật (Key Features)
+Các thao tác ghi dữ liệu yêu cầu đăng nhập và được kiểm tra quyền tại backend. Công thức/bài viết chưa công khai được giới hạn theo tác giả và vai trò quản trị.
 
-### 🔐 1. Xác thực & Bảo mật Toàn diện
-*   **Đăng nhập bằng Google thật (Google OAuth2):** Tích hợp chính thức bằng **Google Identity Services SDK**. Tự động tạo tài khoản, đồng bộ Avatar và kích hoạt tức thì.
-*   **Xác minh Email (OTP):** Đăng ký tài khoản mới đi kèm mã xác thực gửi trực tiếp qua email để kích hoạt.
-*   **Khôi phục mật khẩu (Forgot Password):** Luồng khôi phục hợp nhất 2 bước (Gửi OTP qua email -> Nhập mã OTP xác thực & Đặt mật khẩu mới) mã hóa mật khẩu bảo mật cao bằng `bcrypt`.
-
-### 🍲 2. Quản lý & Chia sẻ Công thức Nấu ăn
-*   **Đăng công thức trực quan:** Thiết lập nguyên liệu, danh mục, thời gian chuẩn bị, thời gian nấu, lượng calories và độ khó.
-*   **Các bước thực hiện sinh động:** Upload ảnh riêng cho từng bước nấu ăn.
-*   **Quản lý ảnh bằng Cloudinary:** Lưu trữ đám mây. Đã được khắc phục hoàn toàn lỗi xung đột ghi đè đồng thời (race condition) bằng cơ chế định danh độc bản ngẫu nhiên.
-
-### ❄️ 3. Tủ Lạnh Ảo (Smart Fridge AI)
-*   Nhập danh sách nguyên liệu bạn đang có sẵn trong nhà.
-*   Hệ thống sẽ gửi yêu cầu tới **Trí tuệ nhân tạo (AI)** để gợi ý những công thức nấu ăn ngon nhất có thể chế biến được ngay lập tức.
-*   *Tính năng tối ưu:* Tự động dọn dẹp tủ lạnh ảo khi đăng xuất hoặc chuyển phiên đăng nhập mới để đảm bảo tính riêng tư cho từng tài khoản.
-
-### 🏆 4. Bảng Xếp Hạng Kép (Leaderboard)
-*   **Công thức yêu thích nhất:** Xếp hạng các món ăn được cộng đồng lưu nhiều nhất. Vinh danh Top 3 trên bục Podium sang trọng với các chỉ số đánh giá trung bình.
-*   **Đầu bếp nổi bật nhất:** Xếp hạng các tác giả có lượt theo dõi (`followers_count`) cao nhất để tôn vinh sự đóng góp tích cực cho cộng đồng.
-
-### 🔔 5. Thông báo Thời gian thực (Real-time Notifications)
-*   Tích hợp giao thức **Socket.io** giúp đẩy thông báo tức thì (nhận xét công thức, đánh giá sao, có người theo dõi mới).
-*   Thanh thông báo tự cập nhật số lượng tin nhắn chưa đọc.
-*   **Điều hướng thông minh:** Click vào thông báo sẽ tự động dẫn tới công thức nấu ăn hoặc hồ sơ người theo dõi tương ứng.
-
-### 👑 6. Trang Quản trị (Admin Dashboard)
-*   Xem báo cáo và kiểm duyệt nhanh các công thức nấu ăn mới đăng.
-*   Quản lý danh sách người dùng (hiển thị rõ trạng thái xác thực Đang hoạt động / Chưa kích hoạt).
-*   Quản lý các danh mục ẩm thực.
-
----
-
-## 🛠️ Công Nghệ Sử Dụng (Tech Stack)
+## Công nghệ
 
 | Thành phần | Công nghệ |
-| :--- | :--- |
-| **Frontend** | React (Vite), Redux Toolkit, Redux-Saga, Tailwind CSS, Vanilla CSS, Socket.io-client |
-| **Backend** | Node.js, Express.js, Socket.io, JSON Web Token (JWT) |
-| **Database** | MySQL, Connection Pool (`mysql2/promise`) |
-| **File Storage** | Cloudinary API, Multer Storage Cloudinary |
-| **Email Service** | SMTP (Nodemailer) gửi thư tự động |
+| --- | --- |
+| Frontend | React 19, Vite 8, React Router 7, Redux Toolkit, Tailwind CSS 3, Axios |
+| Backend | Node.js, Express 4; routes → controllers → services → repositories |
+| Database | MySQL 8, mysql2/promise, migration và seed có phiên bản |
+| AI và truy xuất | Gemini API, Gemini Embeddings, cosine similarity và đối chiếu nguyên liệu |
+| Thông báo | Socket.IO với xác thực JWT |
+| Ảnh | Multer và Cloudinary SDK |
+| Email và xác thực | Nodemailer/SMTP, JWT, bcryptjs |
+| Xuất PDF | jsPDF, font Noto Sans tiếng Việt được đóng kèm frontend |
 
----
+## Tủ lạnh AI hoạt động như thế nào?
 
-## 📁 Cấu Trúc Thư Mục (Directory Structure)
+1. Backend lấy các công thức **đã xuất bản** cùng nguyên liệu trong MySQL để tạo tài liệu truy xuất.
+2. Gemini Embeddings tạo vector cho công thức và yêu cầu của người dùng. Vector công thức được cache theo nội dung; tài liệu mới/thay đổi được cập nhật khi gợi ý.
+3. Backend kết hợp độ tương đồng vector và từ vựng, chọn tối đa **12 công thức** làm ngữ cảnh cho Gemini.
+4. Gemini lựa chọn công thức và đối chiếu tên nguyên liệu theo ngữ nghĩa. Backend kiểm tra ID nguồn, lấy thông tin món từ database và ưu tiên món khớp từ **50% loại nguyên liệu** trong tập truy xuất.
+5. Nếu thiếu số món yêu cầu, hệ thống có thể bổ sung món được ghi rõ là gợi ý AI. Code tính lại nguyên liệu còn thiếu, trừ tồn kho một lần cho cả bữa và bỏ gia vị cơ bản khỏi danh sách mua.
+
+Model sinh gợi ý nhận tập công thức đã truy xuất, không nhận toàn bộ database trong mỗi prompt. Hiện vector được tìm trong Node.js và lưu cache tại `backend/.cache/fridge-rag-vectors.json`, chưa dùng vector database riêng.
+
+Tỷ lệ khớp là ước tính theo loại nguyên liệu, không bảo đảm đủ định lượng. Ngưỡng 50% chỉ áp dụng trong tập truy xuất, không bảo đảm tìm hết mọi món phù hợp trên toàn kho. Xem [chi tiết RAG và giới hạn](backend/README-RAG.md).
+
+## Cấu trúc dự án
 
 ```text
 CulinShare/
 ├── backend/
-│   ├── database/         # Các file migration và dữ liệu SQL mẫu
+│   ├── database/           # Runner, migrations, seeds và kiểm tra database
 │   ├── src/
-│   │   ├── config/       # Cấu hình Database, Cloudinary
-│   │   ├── controllers/  # Bộ điều khiển Request / Response
-│   │   ├── middlewares/  # Xác thực token, upload file, validate input
-│   │   ├── models/       # Định nghĩa lược đồ thực thể
-│   │   ├── repositories/ # Tầng tương tác trực tiếp MySQL (SQL queries)
-│   │   ├── routes/       # Khai báo các API Endpoints
-│   │   └── services/     # Tầng xử lý nghiệp vụ (Business logic)
-│   └── server.js         # Entrypoint của Backend
-└── frontend/
-    ├── src/
-    │   ├── components/   # Các component dùng chung (Header, Bell, Cards...)
-    │   ├── pages/        # Các trang giao diện chính
-    │   ├── services/     # Gọi REST API (Axios)
-    │   └── store/        # Quản lý trạng thái Redux Toolkit
-    └── vite.config.js    # Cấu hình Vite bundler
+│   │   ├── config/        # MySQL, Cloudinary, Socket.IO
+│   │   ├── controllers/   # Xử lý request/response
+│   │   ├── middlewares/   # Xác thực, phân quyền, kiểm tra đầu vào, upload
+│   │   ├── repositories/  # Truy vấn MySQL
+│   │   ├── routes/        # REST API
+│   │   └── services/      # Nghiệp vụ, AI và truy xuất
+│   ├── .env.example
+│   └── server.js
+├── frontend/
+│   ├── public/fonts/      # Font tiếng Việt cho PDF và giấy phép font
+│   ├── src/
+│   │   ├── components/    # Thành phần dùng chung và điều hướng mobile
+│   │   ├── pages/         # Các trang người dùng và quản trị
+│   │   ├── services/      # API, Socket.IO và xuất PDF
+│   │   └── store/         # Redux
+│   └── vite.config.js
+├── tests/                 # Kiểm thử hồi quy bằng Node test runner
+└── docs/                  # Tài liệu chức năng và kiểm tra
 ```
 
----
+## Cài đặt và chạy trên máy cá nhân
 
-## 🚀 Hướng Dẫn Cài Đặt (Installation & Setup)
+### 1. Chuẩn bị
 
-### Yêu cầu hệ thống
-*   Node.js phiên bản `>= 18.0.0`
-*   MySQL Server phiên bản `>= 8.0`
+- **Node.js 22.12 trở lên** và npm, phù hợp với Vite 8.
+- **MySQL 8.0.16 trở lên** để thực thi CHECK constraint.
+- MySQL đang chạy; tài khoản có quyền tạo/sửa bảng và thêm dữ liệu. Cần quyền tạo database nếu database chưa tồn tại.
+- Gemini API key cho Tủ lạnh AI; Cloudinary cho upload ảnh; SMTP cho OTP và khôi phục mật khẩu.
 
-### 1. Tải dependencies
+```powershell
+git clone https://github.com/HoangDongDong/Culin-Share.git
+cd Culin-Share
+```
 
-**Cài đặt cho Backend:**
-```bash
+### 2. Cấu hình backend
+
+```powershell
 cd backend
-npm install
+npm ci
+Copy-Item .env.example .env
 ```
 
-**Cài đặt cho Frontend:**
-```bash
-cd frontend
-npm install
-```
+Sửa `backend/.env` theo cấu hình trên máy. Bổ sung các biến cần thiết nếu file mẫu chưa có:
 
-### 2. Cài đặt Cơ sở dữ liệu (MySQL)
-1. Cấu hình MySQL trong `backend/.env` theo mục bên dưới.
-2. Chạy `npm run db:update` trong thư mục `backend` để tạo database mới hoặc cập nhật database hiện có, không xóa dữ liệu cũ.
-3. Sau mỗi lần pull mã mới, `npm run dev` hoặc `npm start` cũng tự chạy các migration chưa áp dụng trước khi mở server. Dữ liệu Cộng đồng mẫu chỉ được thêm một lần trong môi trường phát triển.
-
-Xem [hướng dẫn migration và dữ liệu Cộng đồng](backend/database/README.md). Không import trực tiếp `init.sql` vào database đang dùng vì file này có lệnh reset; runner mới chỉ sử dụng phần khởi tạo an toàn khi database trống.
-
-### 3. Cấu hình biến môi trường
-Tạo file `.env` trong thư mục `backend/` dựa trên file `.env.example` và điền đầy đủ các thông tin:
-
-```env
-PORT=5000
+```dotenv
+PORT=3000
 DB_HOST=localhost
+DB_PORT=3306
 DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=mamngon
+DB_PASSWORD=your_mysql_password
+DB_NAME=CulinShare
 
-JWT_SECRET=your_jwt_secret_key
+JWT_SECRET=replace_with_a_long_random_secret
+JWT_EXPIRES_IN=15m
+CORS_ORIGIN=http://localhost:5050
 
-CLOUDINARY_CLOUD_NAME=your_cloudinary_name
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.5-flash-lite
+GEMINI_EMBEDDING_MODEL=gemini-embedding-001
+
+CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASSWORD=your_app_password
-EMAIL_FROM=your_email@gmail.com
+EMAIL_USER=your_email@example.com
+EMAIL_PASSWORD=your_smtp_password_or_app_password
+EMAIL_FROM=your_email@example.com
 ```
 
----
+Không commit file `.env` hoặc khóa dịch vụ. Các model trên là giá trị mặc định trong mã nguồn; tài khoản Gemini phải có quyền và quota cho cả sinh nội dung lẫn embedding.
 
-## 🏃 Chạy Dự Án (Running Locally)
+Google Sign-In hiện khai báo client ID trực tiếp trong `LoginPage.jsx` và `RegisterPage.jsx`. Khi dùng Google OAuth project riêng, cần thay client ID ở cả hai trang và cấu hình Authorized JavaScript origins tương ứng trong Google Cloud.
 
-### Bước 1: Khởi động Backend (cổng mặc định `5000`)
-```bash
-cd backend
+### 3. Khởi tạo database và chạy backend
+
+Tiếp tục trong thư mục `backend`:
+
+```powershell
+npm run db:update
 npm run dev
 ```
 
-### Bước 2: Khởi động Frontend (cổng mặc định `5173`)
-```bash
+Backend local chạy tại **http://localhost:3000**. Khi khởi động local, backend tự áp dụng migration chưa chạy trước khi nhận request; các thành viên pull mã mới sẽ được cập nhật schema của database trên máy mình.
+
+Khi có biến `VERCEL`, backend xuất Express app, không mở HTTP listener riêng, không khởi tạo Socket.IO và không chạy luồng migration lúc khởi động. Database cloud phải có schema trước khi sử dụng API; phản hồi thành công tại `/` chỉ xác nhận app hoạt động, không xác nhận schema/kết nối database. Thông báo realtime cần dịch vụ riêng khi chạy theo chế độ này.
+
+Kết nối database tự bật TLS tối thiểu 1.2 và xác minh chứng chỉ khi chạy trên Vercel, host thuộc `tidbcloud.com` hoặc cổng 4000; có thể bật bằng `DB_SSL=true` cho host khác. Pool và kết nối migration dùng chung cấu hình này. Với TiDB Cloud, đặt rõ `DB_HOST`, `DB_PORT=4000`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`. Khả năng tương thích toàn bộ migration MySQL với TiDB cần được kiểm tra trên database đích trước khi áp dụng.
+
+**Không import trực tiếp `backend/database/init.sql` vào database đang dùng** vì file gốc có lệnh reset. Runner migration sử dụng phần khởi tạo an toàn và giữ dữ liệu hiện có. Không sửa migration/seed đã áp dụng; tạo phiên bản mới cho thay đổi tiếp theo.
+
+Trong môi trường phát triển, runner có thể nạp dữ liệu nền và seed cộng đồng. Đặt `COMMUNITY_SEED_DEMO=false` để tắt seed cộng đồng tự động. Các bài `[Bài mẫu]` là dữ liệu seed trong database; tài khoản cộng đồng mẫu không có mật khẩu đăng nhập dùng chung. Xem [hướng dẫn database](backend/database/README.md).
+
+### 4. Chạy frontend
+
+Mở terminal thứ hai tại thư mục gốc dự án:
+
+```powershell
 cd frontend
+npm ci
 npm run dev
 ```
 
-Truy cập địa chỉ `http://localhost:5173` trên trình duyệt để sử dụng ứng dụng!
+Truy cập **http://localhost:5050**. Frontend mặc định gọi backend tại `http://localhost:3000`. Nếu đổi địa chỉ API, tạo `frontend/.env.local` rồi khởi động lại Vite:
 
----
-
-## 🧪 Kiểm thử & Đóng gói (Build & Production)
-
-Để tạo bản phân phối tối ưu hóa cho môi trường Production:
-
-```bash
-cd frontend
-npm run build
+```dotenv
+VITE_API_BASE_URL=http://localhost:3000
 ```
 
-Các file tĩnh sau khi đóng gói sẽ nằm trong thư mục `frontend/dist`.
+Biến này là địa chỉ gốc, không thêm `/api`. Khi đổi origin frontend, cập nhật `CORS_ORIGIN` ở backend; có thể khai báo nhiều origin, phân cách bằng dấu phẩy.
 
----
+## Các lệnh thường dùng
 
-## 🛡️ Bản Quyền (License)
+| Thư mục chạy | Lệnh | Mục đích |
+| --- | --- | --- |
+| `backend` | `npm run dev` | Chạy backend với nodemon, tự cập nhật migration |
+| `backend` | `npm start` | Chạy backend bằng Node.js |
+| `backend` | `npm run db:migrate` | Chỉ cập nhật schema |
+| `backend` | `npm run db:seed` | Cập nhật schema và chạy seed chưa áp dụng |
+| `backend` | `npm run db:update` | Cập nhật theo chính sách của môi trường hiện tại |
+| `backend` | `npm run db:verify-community` | Kiểm tra bảng, dữ liệu và phiên bản migration |
+| `frontend` | `npm run dev` | Chạy Vite tại cổng 5050 |
+| `frontend` | `npm run build` | Tạo bản build trong `frontend/dist` |
+| `frontend` | `npm run preview` | Xem thử bản build frontend |
+| `frontend` | `npm run lint` | Chạy ESLint |
+| Gốc dự án | `node --test tests/*.test.cjs` | Chạy bộ kiểm thử hồi quy |
 
-Dự án này được phát hành dưới bản quyền **MIT License**. Bạn được tự do học tập, phát triển và sử dụng phi thương mại.
+Bộ test Node dùng giả lập dịch vụ ngoài, không gọi AI trả phí hoặc ghi database thật. Các lệnh kiểm tra database/API cộng đồng có hướng dẫn riêng trong tài liệu database. Dự án chưa có bộ E2E toàn hệ thống hoặc quy trình triển khai production hoàn chỉnh.
+
+## Bảo mật và phạm vi hiện tại
+
+- JWT Bearer cho API và xác thực kết nối Socket.IO; kiểm tra quyền sở hữu/vai trò tại backend.
+- Truy vấn SQL dùng tham số, kiểm tra bộ lọc và whitelist cách sắp xếp; migration bổ sung index cho các truy vấn phổ biến.
+- Nội dung chữ được render bằng React; URL ảnh/liên kết được kiểm tra, upload giới hạn loại và kích thước file.
+- API kiểm tra Origin cho yêu cầu ghi từ trình duyệt, giới hạn body, thêm security headers và ẩn lỗi nội bộ trong môi trường production.
+- Tìm kiếm substring vẫn có thể quét dữ liệu; index B-tree không giải quyết hoàn toàn `LIKE '%...%'`. Kho công thức lớn cần đánh giá lại giải pháp tìm kiếm và chỉ mục vector.
+- Báo cáo cộng đồng đã lưu vào database; giao diện xử lý hàng đợi báo cáo và upload video chưa được xây dựng. Giao diện mobile được kiểm tra bằng viewport trình duyệt, chưa xác nhận trên mọi thiết bị vật lý.
+
+Các cơ chế trên không thay thế việc kiểm thử bảo mật và hiệu năng trước khi vận hành thực tế.
+
+## Tài liệu chi tiết
+
+- [Database, migration, seed và API cộng đồng](backend/database/README.md)
+- [Tủ lạnh AI: kiến trúc RAG, cấu hình và giới hạn](backend/README-RAG.md)
+- [Tìm kiếm, index MySQL, PDF và các thay đổi bảo mật](docs/search-pdf-security.md)
+- [Giao diện mobile và phạm vi kiểm tra](docs/mobile-ui.md)

@@ -2,6 +2,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const mysql = require('mysql2/promise');
+const databaseOptions = require('../src/config/databaseOptions');
 
 const checksum = source => createHash('sha256').update(source.replace(/\r\n/g, '\n')).digest('hex');
 
@@ -41,10 +42,9 @@ function baselineStatements(source) {
 }
 
 async function connect() {
-    const database = process.env.DB_NAME || 'CulinShare';
+    const { database, ...connectionOptions } = databaseOptions();
     const config = {
-        host: process.env.DB_HOST || 'localhost', port: Number(process.env.DB_PORT) || 3306,
-        user: process.env.DB_USER || 'root', password: process.env.DB_PASSWORD || '123456',
+        ...connectionOptions,
         connectTimeout: 10000, charset: 'utf8mb4',
     };
     try { return await mysql.createConnection({ ...config, database }); }

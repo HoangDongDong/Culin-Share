@@ -211,7 +211,7 @@ const ProfilePage = () => {
       <main className="w-full px-6 sm:px-10 md:px-14 lg:px-20 xl:px-24 py-lg flex-grow">
         <div className="flex flex-col md:flex-row gap-lg">
           {/* Side Navigation */}
-          <aside className="w-full md:w-64 shrink-0 select-none">
+          <aside data-profile-nav="true" className="w-full md:w-64 shrink-0 select-none">
             <div className="space-y-base">
               <button
                 onClick={() => setSection("personal")}

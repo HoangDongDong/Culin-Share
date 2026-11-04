@@ -267,7 +267,7 @@ const TopChefsPage = () => {
                     return (
                       <div
                         key={item.id}
-                        className="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-all duration-300 hover:border-outline"
+                        className="mobile-ranking-row bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-all duration-300 hover:border-outline"
                       >
                         {activeTab === "recipes" ? (
                           /* List Row for RECIPES */

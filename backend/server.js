@@ -138,7 +138,9 @@ app.use((err, req, res, next) => {
 const server = http.createServer(app);
 
 // Khởi tạo Socket.io trên HTTP server
-initSocket(server);
+if (!process.env.VERCEL) {
+    initSocket(server);
+}
 
 const startServer = async () => {
     try {
@@ -162,4 +164,9 @@ const startServer = async () => {
     }
 };
 
-startServer();
+if (process.env.VERCEL) {
+    // Vercel owns the HTTP listener. Prepare the database separately before deployment.
+    module.exports = app;
+} else {
+    startServer();
+}

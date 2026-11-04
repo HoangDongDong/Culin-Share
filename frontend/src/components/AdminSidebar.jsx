@@ -5,7 +5,7 @@ const AdminSidebar = ({ activeTab, setActiveTab }) => {
   const { user } = useSelector((state) => state.auth);
 
   return (
-    <aside className="h-full w-64 fixed left-0 top-0 bg-surface-container-low flex flex-col p-md gap-sm shadow-md z-40 select-none border-r border-outline-variant/10">
+    <aside data-admin-sidebar="true" className="h-full w-64 fixed left-0 top-0 bg-surface-container-low flex flex-col p-md gap-sm shadow-md z-40 select-none border-r border-outline-variant/10">
       <div className="mb-md">
         <Link to="/" className="font-headline-sm text-headline-sm font-black text-primary hover:opacity-90 block">
           CulinShare

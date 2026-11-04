@@ -171,7 +171,7 @@ const SearchPage = () => {
 
           {/* Recipe List */}
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+            <div className="mobile-recipe-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
               {Array.from({ length: 6 }).map((_, idx) => (
                 <div key={idx} className="bg-surface-container-lowest rounded-2xl h-96 animate-pulse border border-outline-variant/10 shadow-sm flex flex-col p-4">
                   <div className="bg-surface-variant w-full h-48 rounded-xl mb-4"></div>
@@ -182,7 +182,7 @@ const SearchPage = () => {
               ))}
             </div>
           ) : displayedRecipes.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+            <div className="mobile-recipe-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
               {displayedRecipes.map((recipe) => (
                 <RecipeCard key={recipe.id} recipe={recipe} />
               ))}

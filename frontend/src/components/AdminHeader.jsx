@@ -1,9 +1,8 @@
-import { Link } from "react-router-dom";
 import NotificationBell from "./NotificationBell";
 
 const AdminHeader = () => {
   return (
-    <header className="h-16 flex justify-between items-center px-gutter bg-background border-b border-outline-variant/10 shadow-sm sticky top-0 z-30 select-none">
+    <header data-admin-header="true" className="h-16 flex justify-between items-center px-gutter bg-background border-b border-outline-variant/10 shadow-sm sticky top-0 z-30 select-none">
       <div>
         <h1 className="font-headline-sm text-headline-sm font-bold text-primary">Quản trị hệ thống</h1>
       </div>

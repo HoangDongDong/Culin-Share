@@ -384,7 +384,7 @@ const EditRecipePage = () => {
                 </div>
                 <div className="space-y-sm">
                   {ingredients.map((ing, idx) => (
-                    <div key={idx} className="grid grid-cols-12 gap-sm items-center group animate-in fade-in duration-200">
+                    <div key={idx} className="mobile-ingredient-row grid grid-cols-12 gap-sm items-center group animate-in fade-in duration-200">
                       <div className="col-span-1 flex justify-center text-on-surface-variant select-none">
                         <span className="material-symbols-outlined cursor-grab">drag_indicator</span>
                       </div>

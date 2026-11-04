@@ -70,7 +70,7 @@ const SavedRecipesPage = () => {
             <span>Đang tải công thức đã lưu...</span>
           </div>
         ) : savedRecipes.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+          <div className="mobile-recipe-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
             {savedRecipes.map((recipe) => (
               <RecipeCard
                 key={recipe.id}

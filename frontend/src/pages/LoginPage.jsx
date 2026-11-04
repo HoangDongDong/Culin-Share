@@ -47,7 +47,7 @@ const LoginPage = () => {
         { 
           theme: "outline", 
           size: "large", 
-          width: 384, // matches max-width-md wrapper
+          width: Math.min(384,document.getElementById('google-login-btn')?.clientWidth||280), // matches max-width-md wrapper
           text: "signin_with"
         }
       );

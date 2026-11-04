@@ -149,6 +149,7 @@ const Header = () => {
 
   return (
     <header
+      data-mobile-header="true"
       className={`sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-stone-200/70 shadow-xs transition-transform duration-300 ease-in-out ${
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
@@ -202,11 +203,12 @@ const Header = () => {
 
         {/* Right Section Actions */}
         <div className="flex items-center gap-2 xl:gap-3 flex-shrink-0">
+          <button type="button" className="mobile-search-trigger" aria-label="Mở tìm kiếm" onClick={()=>{setMobileMenuOpen(true);setTimeout(()=>document.querySelector('#mobile-site-menu input')?.focus(),0);}}><SearchIcon className="w-5 h-5"/></button>
           {/* Notifications */}
           <NotificationBell />
 
           {/* User Profile Menu */}
-          <div className="relative" ref={userMenuRef}>
+          <div className="relative" data-mobile-account="true" ref={userMenuRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center gap-1 focus:outline-none active:scale-95 transition-all select-none p-0.5 rounded-full hover:bg-stone-100"
@@ -337,7 +339,7 @@ const Header = () => {
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="2xl:hidden p-2 rounded-xl text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors focus:outline-none select-none flex-shrink-0"
-            aria-label="Toggle menu"
+            aria-label={mobileMenuOpen?"Đóng menu":"Mở menu"} aria-expanded={mobileMenuOpen} aria-controls="mobile-site-menu"
           >
             <span className="material-symbols-outlined text-2xl">
               {mobileMenuOpen ? "close" : "menu"}
@@ -348,7 +350,7 @@ const Header = () => {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="2xl:hidden bg-white border-t border-stone-100 px-4 sm:px-6 py-4 shadow-lg animate-in fade-in slide-in-from-top-2 duration-150">
+        <div id="mobile-site-menu" className="2xl:hidden bg-white border-t border-stone-100 px-4 sm:px-6 py-4 shadow-lg animate-in fade-in slide-in-from-top-2 duration-150">
           <div className="max-w-[1360px] mx-auto">
             {/* Mobile Search */}
             <form
@@ -406,6 +408,8 @@ const Header = () => {
                 <span>Cộng đồng</span>
               </Link>
 
+              {user&&<Link to="/saved-recipes" onClick={()=>setMobileMenuOpen(false)} className={linkClass('/saved-recipes')}><span className="material-symbols-outlined text-lg">bookmark</span><span>Món đã lưu</span></Link>}
+              {user?.role==='admin'&&<Link to="/admin" onClick={()=>setMobileMenuOpen(false)} className={linkClass('/admin')}><span className="material-symbols-outlined text-lg">dashboard</span><span>Quản trị</span></Link>}
               <div className="pt-2 mt-2 border-t border-stone-100 sm:hidden">
                 <Link
                   to="/submit-recipe"

@@ -278,7 +278,7 @@ const SubmitRecipePage = () => {
               </div>
               <div className="space-y-sm">
                 {ingredients.map((ing, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-sm items-center group animate-in fade-in duration-200">
+                  <div key={idx} className="mobile-ingredient-row grid grid-cols-12 gap-sm items-center group animate-in fade-in duration-200">
                     <input
                       className="col-span-4 px-md py-2.5 bg-surface-container-lowest border border-outline-variant/50 rounded-lg focus:border-primary focus:ring-0 transition-all font-body-md outline-none text-on-surface"
                       placeholder="Định lượng (vd: 500g)"

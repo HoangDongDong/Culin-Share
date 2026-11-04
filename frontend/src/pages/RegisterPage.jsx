@@ -48,7 +48,7 @@ const RegisterPage = () => {
         { 
           theme: "outline", 
           size: "large", 
-          width: 384, // matches max-width-md wrapper
+          width: Math.min(384,document.getElementById('google-register-btn')?.clientWidth||280), // matches max-width-md wrapper
           text: "signup_with"
         }
       );

@@ -66,7 +66,7 @@ const HomePage = () => {
         {/* ========================================================================= */}
         {/* HERO SECTION - SEAMLESS FULL BANNER WITH GRADIENT BLEND */}
         {/* ========================================================================= */}
-        <section className="relative w-full overflow-hidden border-b border-stone-200/50 bg-[#F5ECE0]">
+        <section data-mobile-hero="true" className="relative w-full overflow-hidden border-b border-stone-200/50 bg-[#F5ECE0]">
           {/* Full Banner Background Container using exact user image */}
           <div className="absolute inset-0 z-0 pointer-events-none">
             <HomeImage
@@ -139,7 +139,7 @@ const HomePage = () => {
             {/* ===================================================================== */}
             {/* LEFT / CENTER MAIN COLUMN (8 cols out of 12) */}
             {/* ===================================================================== */}
-            <div className="lg:col-span-8 space-y-10">
+            <div className="home-main-column lg:col-span-8 space-y-10">
 
               {/* BLOCK 1: DANH MỤC PHỔ BIẾN (8 ITEMS) */}
               <section>
@@ -155,7 +155,7 @@ const HomePage = () => {
                   </h2>
                 </div>
 
-                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5 sm:gap-3">
+                <div className="home-category-grid grid grid-cols-4 sm:grid-cols-8 gap-2.5 sm:gap-3">
                   {!loading&&!popularCategories.length&&<p className="text-sm text-stone-500 col-span-full">Chưa có danh mục.</p>}
                   {popularCategories.map((cat) => (
                     <Link
@@ -183,7 +183,7 @@ const HomePage = () => {
 
               {/* BLOCK 2: 🔥 CÔNG THỨC NỔI BẬT */}
               <section>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <div className="home-featured-toolbar flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                   <div className="flex items-center gap-2">
                     <span className="text-lg sm:text-xl">🔥</span>
                     <h2 className="text-lg sm:text-xl font-bold text-stone-900 tracking-tight">
@@ -234,7 +234,7 @@ const HomePage = () => {
                 </div>
 
                 {/* 4 Recipe Cards Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="home-recipe-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {!loading&&!featuredRecipes.length&&<p className="text-sm text-stone-500">Chưa có công thức được xuất bản.</p>}
                   {featuredRecipes.map((recipe) => (
                     <div

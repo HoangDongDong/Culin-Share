@@ -301,7 +301,7 @@ const ChefProfilePage = () => {
 
                 {/* Standard Grid items */}
                 {otherRecipes.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter pt-6">
+                  <div className="mobile-recipe-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter pt-6">
                     {otherRecipes.map((recipe) => (
                       <RecipeCard key={recipe.id} recipe={recipe} />
                     ))}
@@ -317,7 +317,7 @@ const ChefProfilePage = () => {
         {activeTab === "saved" && Number(user?.id)===Number(id) && (
           <div className="animate-in fade-in duration-300">
             {savedRecipes.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+              <div className="mobile-recipe-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
                 {savedRecipes.map((recipe) => (
                   <RecipeCard
                     key={recipe.id}
