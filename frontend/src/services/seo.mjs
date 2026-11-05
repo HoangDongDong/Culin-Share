@@ -43,7 +43,7 @@ export function recipeSeo(recipe) {
   const schema = {
     '@context':'https://schema.org', '@type':'Recipe', name:plainText(recipe.title),
     description, url:base.url, ...(image ? {image:[image]} : {}),
-    ...(recipe.author_name ? {author:{'@type':'Person', name:plainText(recipe.author_name)}} : {}),
+    ...(recipe.importInfo ? {author:{'@type':'Organization',name:recipe.importInfo.upstreamSite,url:recipe.importInfo.upstreamSite},isBasedOn:recipe.importInfo.datasetUrl} : recipe.author_name ? {author:{'@type':'Person', name:plainText(recipe.author_name)}} : {}),
     ...(recipe.created_at && Number.isFinite(Date.parse(recipe.created_at)) ? {datePublished:new Date(recipe.created_at).toISOString()} : {}),
     ...(Number(recipe.prep_time_minutes) > 0 ? {prepTime:`PT${Number(recipe.prep_time_minutes)}M`} : {}),
     ...(Number(recipe.cook_time_minutes) > 0 ? {cookTime:`PT${Number(recipe.cook_time_minutes)}M`} : {}),

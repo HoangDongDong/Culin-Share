@@ -9,8 +9,10 @@ const frontend=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const dist=path.join(frontend,'dist');
 const env={...loadEnv('production',frontend,''),...process.env};
 const api=env.VITE_API_BASE_URL || 'http://localhost:3000';
+const seoApi=env.SEO_API_BASE_URL || api;
 // A pasted KEY=value or multiline value must fail the build instead of shipping a broken app.
 if(!/^https?:\/\/[^\s=]+$/.test(api))throw Error('VITE_API_BASE_URL phải chỉ chứa URL backend, không có tên biến, dấu = hoặc xuống dòng.');
+if(!/^https?:\/\/[^\s=]+$/.test(seoApi))throw Error('SEO_API_BASE_URL không hợp lệ');
 const template=await fs.readFile(path.join(dist,'index.html'),'utf8');
 export function renderHtml(template,meta,content=''){
   const head=template.replace(/<title>[\s\S]*?<\/title>/gi,'')
@@ -37,7 +39,7 @@ async function writePage(url,meta,body){
   await fs.writeFile(target,renderHtml(template,meta,shell(body)));
 }
 async function getJson(url){
-  const response=await fetch(api.replace(/\/$/,'')+url,{signal:AbortSignal.timeout(15000)});
+  const response=await fetch(seoApi.replace(/\/$/,'')+url,{signal:AbortSignal.timeout(15000)});
   if(!response.ok)throw Error(`API trả HTTP ${response.status}`);
   const result=await response.json();if(!result.success)throw Error('API không trả dữ liệu thành công');return result;
 }

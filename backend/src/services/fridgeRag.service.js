@@ -12,8 +12,17 @@ const document = recipe => JSON.stringify({ title: recipe.title, description: St
 
 class FridgeRagService {
     async retrieve(options) {
-        const candidates = (await repository.findPublishedForMatching()).filter(recipe => recipe.ingredients?.length);
+        let candidates = (await repository.findPublishedForMatching()).filter(recipe => recipe.ingredients?.length);
         if (!candidates.length) return [];
+        // Bound embedding work after a bulk import. This coarse pass uses actual
+        // ingredient text, not a hand-written synonym dictionary. Semantic ranking
+        // remains the second pass and the LLM still sees at most 12 recipes.
+        const stockWords=new Set(normalize(options.ingredients.map(item=>item.name).join(' ')).split(' ').filter(Boolean));
+        if(candidates.length>128)candidates=candidates.map(recipe=>{
+            const words=new Set(normalize(recipe.ingredients.map(item=>item.name).join(' ')).split(' '));
+            const overlap=[...stockWords].filter(word=>words.has(word)).length;
+            return {recipe,score:overlap/Math.max(1,stockWords.size)};
+        }).sort((a,b)=>b.score-a.score||a.recipe.id-b.recipe.id).slice(0,128).map(item=>item.recipe);
         const vectors = await embeddings.embed(candidates.map(document), 'RETRIEVAL_DOCUMENT');
         const query = `Tìm món ăn nấu được từ nguyên liệu: ${options.ingredients.map(item => item.name).join(', ')}. ${options.peopleCount} người; ${options.cookingSpeed}; ${options.complexity}.`;
         // User fridge queries are never persisted in the catalog vector cache.

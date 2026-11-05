@@ -4,7 +4,7 @@ Luồng `/api/ai/fridge-suggest` hiện truy xuất trước, sinh gợi ý sau.
 
 1. Đọc công thức **đã xuất bản** và nguyên liệu hiện tại từ MySQL. Mỗi công thức là một tài liệu gồm tên, mô tả, nguyên liệu, khẩu phần, độ khó và thời gian.
 2. Tạo vector Gemini với task `RETRIEVAL_DOCUMENT`. Khóa cache gồm model, số chiều, task và hash nội dung; sửa nội dung sẽ tạo vector mới. Công thức bị xóa/chuyển trạng thái không còn nằm trong tập truy xuất dù vector cũ còn trong cache.
-3. Tạo vector cho nguyên liệu/tùy chọn người dùng với task `RETRIEVAL_QUERY`. Chấm cosine kết hợp độ giao từ vựng và chọn tối đa 12 công thức. Truy vấn tủ lạnh không lưu trong cache trên đĩa.
+3. Khi kho vượt 128 món, chọn thô tối đa 128 ứng viên theo độ giao từ vựng nguyên liệu để giới hạn embedding sau bulk import. Tạo vector tài liệu ứng viên và truy vấn với task tương ứng; chấm cosine kết hợp độ giao từ vựng rồi chọn tối đa 12 công thức. Truy vấn tủ lạnh không lưu trong cache trên đĩa. Chọn thô có thể bỏ sót tên đồng nghĩa không giao từ vựng; không phải tìm vector trên toàn bộ kho lớn.
 4. Đưa 12 công thức cùng các chỉ số nguyên liệu vào prompt Gemini. Model chọn `sourceRecipeId` và đối chiếu tên nguyên liệu theo ngữ nghĩa, gồm tên địa phương/tên nhập tự do. Mỗi đối chiếu phải có ID, chỉ số hợp lệ và confidence tối thiểu 0.9. Đối chiếu mâu thuẫn bị bỏ qua; confidence là tự đánh giá của model, không phải xác suất đã hiệu chuẩn.
 5. Backend chỉ chấp nhận ID trong ngữ cảnh truy xuất, lấy dữ liệu món thật từ database, quy đổi khẩu phần, đưa món khớp từ 50% loại nguyên liệu lên trước. Khi chưa đủ món có thể bổ sung món mới được ghi rõ là AI. Tổng kết quả không vượt số món yêu cầu. Danh sách mua thêm được tính lại bằng code sau khi trừ tồn kho một lần cho cả bữa.
 

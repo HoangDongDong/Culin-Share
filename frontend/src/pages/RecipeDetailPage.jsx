@@ -247,6 +247,7 @@ const RecipeDetailPage = () => {
       <Header />
 
       <main className="w-full px-6 sm:px-10 md:px-14 lg:px-20 xl:px-24 py-base flex-grow">
+        {recipe.importInfo&&<aside aria-label="Nguồn công thức" className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-stone-700"><p className="font-semibold mb-1">Công thức tham khảo từ ViFoodRec</p><p>Tài khoản đăng lại: {recipe.author_name}. Nội dung gốc: <a className="underline" href={recipe.importInfo.upstreamSite} target="_blank" rel="noopener noreferrer">{recipe.importInfo.upstreamSite}</a> · <a className="underline" href={recipe.importInfo.datasetUrl} target="_blank" rel="noopener noreferrer">Nguồn dữ liệu ViFoodRec</a>.</p><p className="mt-2">Nguồn chưa cung cấp riêng thời gian chuẩn bị và độ khó. Số liệu dinh dưỡng chưa xác minh đơn vị/khẩu phần nên chưa dùng cho phân tích sức khỏe.</p>{recipe.status!=='published'&&<p className="font-semibold mt-2">Bản nháp nhập liệu — cần kiểm tra ảnh và nội dung trước khi công khai.</p>}{recipe.importInfo.tips&&<p className="mt-2 whitespace-pre-wrap"><strong>Mách nhỏ từ nguồn: </strong>{recipe.importInfo.tips}</p>}</aside>}
         {/* Banner Section */}
         <section className="relative w-full mb-lg overflow-hidden rounded-xl select-none shadow-sm">
           <div className="aspect-[16/9] md:aspect-[21/9] w-full relative">
@@ -521,7 +522,7 @@ const RecipeDetailPage = () => {
                 <div className="flex flex-col items-center p-3 rounded-lg bg-surface">
                   <span className="material-symbols-outlined text-primary mb-1">timer</span>
                   <span className="text-xs text-on-surface-variant uppercase font-label-sm">Chuẩn bị</span>
-                  <span className="font-label-md text-on-surface font-bold">{recipe.prep_time_minutes || recipe.prepTimeMinutes || 0} phút</span>
+                  <span className="font-label-md text-on-surface font-bold">{recipe.importInfo&&recipe.prep_time_minutes==null?'Chưa có dữ liệu':`${recipe.prep_time_minutes || recipe.prepTimeMinutes || 0} phút`}</span>
                 </div>
                 <div className="flex flex-col items-center p-3 rounded-lg bg-surface">
                   <span className="material-symbols-outlined text-primary mb-1">outdoor_grill</span>
@@ -531,12 +532,12 @@ const RecipeDetailPage = () => {
                 <div className="flex flex-col items-center p-3 rounded-lg bg-surface">
                   <span className="material-symbols-outlined text-primary mb-1">groups</span>
                   <span className="text-xs text-on-surface-variant uppercase font-label-sm">Khẩu phần</span>
-                  <span className="font-label-md text-on-surface font-bold">{recipe.servings || 4} người</span>
+                  <span className="font-label-md text-on-surface font-bold">{recipe.importInfo&&!recipe.servings?'Chưa xác minh':`${recipe.servings || 4} người`}</span>
                 </div>
                 <div className="flex flex-col items-center p-3 rounded-lg bg-surface">
                   <span className="material-symbols-outlined text-primary mb-1">local_fire_department</span>
                   <span className="text-xs text-on-surface-variant uppercase font-label-sm">Calories</span>
-                  <span className="font-label-md text-on-surface font-bold">{recipe.calories || 0} kcal</span>
+                  <span className="font-label-md text-on-surface font-bold">{recipe.importInfo&&recipe.calories==null?'Chưa xác minh':`${recipe.calories || 0} kcal`}</span>
                 </div>
               </div>
 
@@ -563,7 +564,7 @@ const RecipeDetailPage = () => {
                 Dinh dưỡng & Sức khỏe
               </h3>
               
-              {userHasHealthStats ? (
+              {recipe.importInfo&&recipe.calories==null ? <p className="text-sm text-on-surface-variant">Chưa có số liệu dinh dưỡng được xác minh theo khẩu phần để phân tích sức khỏe cho công thức nhập này.</p> : userHasHealthStats ? (
                 <div className="space-y-sm">
                   <div className="flex justify-between text-sm text-on-surface-variant font-medium">
                     <span>% Calo ngày cần thiết (TDEE):</span>

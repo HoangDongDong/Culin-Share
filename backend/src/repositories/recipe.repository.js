@@ -218,6 +218,13 @@ class RecipeRepository {
     }
 
     // Helper functions for details
+    async getImportInfo(recipeId) {
+        try {
+            const [rows]=await pool.query('SELECT metadata FROM recipe_imports WHERE recipe_id=?',[recipeId]);
+            const value=rows[0]?.metadata;return typeof value==='string'?JSON.parse(value):value||null;
+        } catch(error) {if(error.code==='ER_NO_SUCH_TABLE')return null;throw error;}
+    }
+
     async getIngredients(recipeId) {
         const [rows] = await pool.query('SELECT * FROM recipe_ingredients WHERE recipe_id = ? ORDER BY id ASC', [recipeId]);
         return rows;

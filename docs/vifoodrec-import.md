@@ -1,0 +1,86 @@
+# Nhập ViFoodRec — sử dụng và kiểm tra
+
+Nguồn dữ liệu được ghim tại commit `126caa3a8b58708a09b2b2e119ff4923b6f06d82`. Công cụ tải hai file raw bằng HTTPS và kiểm tra SHA-256. CSV, báo cáo chứa dữ liệu gốc, cấu hình local và kết quả kiểm tra ảnh nằm trong `backend/.cache/vifoodrec/`, không commit lên GitHub.
+
+## Quy tắc đã áp dụng
+
+- Bỏ URL ảnh không hợp lệ/thiếu, bỏ tên trùng sau Unicode NFC, chữ thường và gộp khoảng trắng. Ưu tiên nguồn Món Ngon Mỗi Ngày vì có thêm sơ chế/cách dùng. Bỏ món trùng tên với công thức cũ; không sửa công thức cũ.
+- Giữ source key, hash dữ liệu, dataset revision, nguồn website, nguyên liệu gốc, ghi chú và dinh dưỡng nguồn trong bảng `recipe_imports`. Tài khoản đăng lại không được trình bày như tác giả gốc.
+- Phân bổ trên số món đủ điều kiện bằng quota nguyên gần nhất 42/29/29; xáo trộn xác định theo hash nguồn rồi phân bố rải rác. Chạy lại giữ nguyên kết quả và không ghi đè nội dung cũ.
+- Chuẩn bị, độ khó và dinh dưỡng chưa xác minh được lưu NULL; không bịa bước nấu, ảnh, đánh giá hoặc số kcal. Khẩu phần không đọc chắc chắn cũng để NULL. UI hiển thị trạng thái chưa xác minh và nguồn.
+- Danh mục `Công thức ViFoodRec` dùng để duyệt toàn bộ bài nhập. Phân loại thô và tags không được tự coi là chính xác: nguồn có những đồ uống bị ghi Món mặn. Chưa tự chia chúng vào các nhóm ẩm thực cụ thể.
+- Chế độ `verified` chỉ công khai món có ảnh trả HTTP thành công, MIME ảnh và chữ ký JPEG/PNG/WebP/GIF. Món có URL nhưng ảnh chưa xác minh được vẫn được nhập dạng nháp, không đưa vào tìm kiếm công khai, sitemap hay RAG.
+- Lưu nguyên liệu dạng tên/định lượng/đơn vị theo parser có kiểm tra, giữ raw để đối chiếu. Các mô tả phức tạp có thể cần rà soát thủ công; không cam kết mọi cách viết định lượng đã được hiểu đầy đủ.
+
+## Các lệnh
+
+Chạy tại `backend`, sau `npm ci`:
+
+```powershell
+# Chỉ tải dữ liệu + phân tích file; không kết nối database
+npm run db:vifoodrec -- --download --audit
+
+# Kiểm tra ảnh, giới hạn kết nối; host liên tục lỗi được ngừng thử
+node database/check-vifoodrec-images.js
+```
+
+Ảnh lỗi kết nối không đồng nghĩa đã bị xóa. Kết quả chưa xác minh cần được kiểm tra lại trước khi công khai; công cụ không né xác thực/TLS hoặc lấy ảnh món khác thay thế. Có thể xóa báo cáo ảnh trong cache rồi kiểm tra lại khi nguồn khôi phục; việc này không tự thay đổi trạng thái các món đã nhập.
+
+Ví dụ nhập local (mật khẩu MySQL local dùng biến môi trường `IMPORT_DB_PASSWORD`, không đưa vào Git):
+
+```powershell
+npm run db:vifoodrec -- --database culinshare_vifoodrec_test_final --audit
+# --audit ở trên chỉ xem file; dry-run database là lệnh dưới:
+npm run db:vifoodrec -- --database culinshare_vifoodrec_test_final --status verified --image-report .cache/vifoodrec/image-check.json
+
+npm run db:vifoodrec -- --database culinshare_vifoodrec_test_final --apply --ensure-schema --status verified --image-report .cache/vifoodrec/image-check.json
+```
+
+`--ensure-schema` tạo hai bảng import qua migration idempotent; không reset database. Backend local khởi động cũng áp dụng migration mới theo runner hiện có. Dry-run database cần schema đã có sẵn. Mỗi lô ghi theo transaction và truy vấn tham số; bulk insert tra ID theo slug thay vì giả định AUTO_INCREMENT liên tiếp, phù hợp cả TiDB.
+
+Database ngoài local yêu cầu đồng thời `--host`, `--port`, `--database` và `--allow-remote`. Đọc các khóa kết nối từ `.env` chỉ khi có `--env-file .env` rõ ràng:
+
+```powershell
+npm run db:vifoodrec -- --host YOUR_DB_HOST --port 4000 --database YOUR_DB_NAME --env-file .env --allow-remote --apply --ensure-schema --status verified --image-report .cache/vifoodrec/image-check.json --report .cache/vifoodrec/production-report.json
+```
+
+Mặc định trạng thái là `draft`. `--status published` dành cho thử nghiệm/quản trị tường minh, bỏ qua gate ảnh; không dùng để công khai hàng loạt link ảnh đang lỗi. Không chạy importer trong request Vercel hoặc tự seed hàng nghìn bài mỗi lần khởi động.
+
+## Kiểm thử local
+
+```powershell
+# Cần IMPORT_DB_PASSWORD; script cố định host 127.0.0.1, database thử riêng
+npm run db:verify-vifoodrec-local
+
+# Backend thử cổng 3002 phải chạy với .cache/vifoodrec/local-test.env
+node database/verify-vifoodrec-api.js
+```
+
+Script local tạo `culinshare_vifoodrec_test_final`, sao chép 36 công thức nền từ MySQL local và tạo tài khoản fixture với mật khẩu ngẫu nhiên, không copy mật khẩu người dùng thật. Không đọc cấu hình TiDB từ `.env` cho bước này. Không reset database local gốc.
+
+Kết quả ngày 05/11/2026:
+
+| Hạng mục | Kết quả |
+| --- | ---: |
+| Dòng raw | 5.509 |
+| Bỏ do thiếu URL ảnh | 19 |
+| Bỏ do trùng tên trong dataset sau chuẩn hóa | 208 |
+| Bỏ do trùng tên với công thức nền | 4 |
+| Nhập mới | 5.278 |
+| hoanganh / chefquang / cheflan | 2.217 / 1.531 / 1.530 |
+| Công khai theo gate ảnh | 1.183 |
+| Bản nháp chờ ảnh | 4.095 |
+
+Đã kiểm tra nhập toàn tập, quota, giữ 36 món cũ, rollback lỗi transaction, tiếp tục sau checkpoint, chạy lại không nhân đôi, rollback batch fixture và từ chối xóa fixture đã sửa. API kiểm tra tìm có dấu/không dấu, phân trang không trùng, danh mục, chi tiết/nguồn, NULL dinh dưỡng và sitemap chỉ gồm bài công khai. Giao diện local mở được ảnh món Bánh canh cua, nguyên liệu `1,5 lít`, các phần sơ chế/chế biến/cách dùng và cảnh báo dữ liệu chưa xác minh.
+
+## Rollback có kiểm tra
+
+Chỉ dùng batch ID từ báo cáo nhập, với `--apply --rollback-batch BATCH_ID` và đúng database/host. Công cụ khóa bản ghi, so snapshot nội dung lúc nhập, kiểm tra cập nhật/bình luận/đánh giá/lượt lưu/liên kết cộng đồng; nếu có thay đổi thì từ chối xóa. Không có snapshot an toàn cũng từ chối. Rollback giữ log batch, không xóa công thức ngoài batch.
+
+## RAG và SEO sau nhập
+
+RAG hiện có thêm bước chọn tối đa 128 ứng viên bằng giao từ vựng nguyên liệu trước embedding và xếp hạng ngữ nghĩa, cuối cùng tối đa 12 món vào prompt. Việc này giới hạn chi phí embedding sau bulk import, nhưng có thể bỏ sót tên nguyên liệu đồng nghĩa không giao từ vựng ở bước chọn thô. Không có bảng alias viết tay; bộ test dùng API giả lập, không chạy tạo hàng nghìn vector trả phí.
+
+Sitemap động tự nhận bài published. HTML SEO được build lại từ API; `SEO_API_BASE_URL` cho phép build kiểm thử từ API local mà JavaScript vẫn dùng URL production. Công thức import có ghi nguồn trong giao diện/JSON-LD, không gán tác giả gốc cho tài khoản đăng lại.
+
+Repository nguồn không công bố LICENSE tại thời điểm khảo sát. Việc nhập không biến nội dung/ảnh thành tài sản của các tài khoản CulinShare; cần giữ nguồn và chỉ sử dụng theo quyền được cấp bởi chủ nội dung. Không nhập ratings của dataset thành đánh giá cộng đồng thật.

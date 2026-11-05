@@ -34,6 +34,7 @@ class RecipeService {
         const steps = await recipeRepository.getSteps(recipeId);
         const images = await recipeRepository.getImages(recipeId);
         const categories = await recipeRepository.getCategories(recipeId);
+        const importInfo = recipeRepository.getImportInfo ? await recipeRepository.getImportInfo(recipeId) : null;
         const rawComments = await commentRepository.findByRecipeId(recipeId);
 
         // Build hierarchical comments
@@ -64,6 +65,7 @@ class RecipeService {
             steps,
             images,
             categories,
+            importInfo,
             comments
         };
 

@@ -10,7 +10,9 @@
     "db:seed": "node database/migrate.js --seed",
     "db:update": "node database/migrate.js",
     "db:verify-community": "node database/verify-community.js",
-    "db:verify-community-api": "node database/verify-community-api.js"
+    "db:verify-community-api": "node database/verify-community-api.js",
+    "db:vifoodrec": "node database/import-vifoodrec.js",
+    "db:verify-vifoodrec-local": "node database/verify-vifoodrec-local.js"
   },
   "keywords": [],
   "author": "",

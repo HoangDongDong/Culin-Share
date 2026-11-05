@@ -76,6 +76,14 @@ test('empty published catalog still supports explicitly labelled new AI recipes'
     assert.equal((await rag.suggest(options)).recipes[0].source, 'ai');
 });
 
+test('large imported catalogs bound embedding work before semantic ranking',async t=>{
+    const all=Array.from({length:5500},(_,index)=>recipe({id:index+1,ingredients:[{name:index>5000?'Gà Hành tăm':'Khoai tây'}]}));
+    t.mock.method(repo,'findPublishedForMatching',async()=>all);
+    let documents=0;
+    t.mock.method(embeddings,'embed',async(texts,task)=>{if(task==='RETRIEVAL_DOCUMENT'){documents=texts.length;assert.ok(texts.every(text=>JSON.parse(text).ingredients[0].name==='Gà Hành tăm'));return texts.map(()=>[1,0]);}return [[1,0]];});
+    const context=await rag.retrieve(options);assert.equal(documents,128);assert.equal(context.length,12);
+});
+
 test('embedding cache survives restart, refreshes changed documents and never caches fridge queries', async t => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'culinshare-rag-'));
     const cachePath = path.join(dir, 'vectors.json');
