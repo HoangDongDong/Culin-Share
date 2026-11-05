@@ -5,6 +5,7 @@ const notificationService = require('./notification.service');
 const userRepository = require('../repositories/user.repository');
 
 const {id:validId,validateUrls}=require('./resourceSecurity');
+const {cleanRecipeContent}=require('./foodText');
 class RecipeService {
     generateSlug(title) {
         let slug = title.toLowerCase()
@@ -95,6 +96,7 @@ class RecipeService {
 
     async createRecipe(authorId, data) {
         validateUrls(data);
+        data=cleanRecipeContent(data);
         const slug = this.generateSlug(data.title);
         const recipeData = {
             author_id: authorId,
@@ -166,6 +168,7 @@ class RecipeService {
 
     async updateRecipe(id, authorId, userRole, data) {
         validId(id);validateUrls(data);
+        data=cleanRecipeContent(data);
         const recipe = await recipeRepository.findById(id);
         if (!recipe) {
             const error = new Error('Không tìm thấy công thức nấu ăn');

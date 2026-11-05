@@ -200,3 +200,4 @@ Các cơ chế trên không thay thế việc kiểm thử bảo mật và hiệ
 - [Giao diện mobile và phạm vi kiểm tra](docs/mobile-ui.md)
 - [SEO, sitemap, công thức công khai và Google Search Console](docs/seo.md)
 - [Nhập ViFoodRec, quy tắc lọc và kiểm thử local](docs/vifoodrec-import.md)
+- [Bỏ thương hiệu khỏi tên nguyên liệu và công thức](docs/recipe-brand-cleanup.md)

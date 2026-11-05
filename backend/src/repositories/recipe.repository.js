@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const {like,searchable}=require('../services/searchFilters');
+const {cleanFoodText}=require('../services/foodText');
 
 class RecipeRepository {
     async findPublishedForMatching() {
@@ -221,7 +222,8 @@ class RecipeRepository {
     async getImportInfo(recipeId) {
         try {
             const [rows]=await pool.query('SELECT metadata FROM recipe_imports WHERE recipe_id=?',[recipeId]);
-            const value=rows[0]?.metadata;return typeof value==='string'?JSON.parse(value):value||null;
+            const value=rows[0]?.metadata;const metadata=typeof value==='string'?JSON.parse(value):value||null;
+            return metadata?{...metadata,tips:cleanFoodText(metadata.tips)}:null;
         } catch(error) {if(error.code==='ER_NO_SUCH_TABLE')return null;throw error;}
     }
 
@@ -255,7 +257,7 @@ class RecipeRepository {
         // Clear old ones
         await pool.query('DELETE FROM recipe_ingredients WHERE recipe_id = ?', [recipeId]);
         if (ingredients && ingredients.length > 0) {
-            const values = ingredients.map(ing => [recipeId, ing.name, ing.quantity || null, ing.unit || null]);
+            const values = ingredients.map(ing => [recipeId, cleanFoodText(ing.name), ing.quantity || null, ing.unit || null]);
             await pool.query('INSERT INTO recipe_ingredients (recipe_id, name, quantity, unit) VALUES ?', [values]);
         }
     }
@@ -264,7 +266,7 @@ class RecipeRepository {
         // Clear old ones
         await pool.query('DELETE FROM recipe_steps WHERE recipe_id = ?', [recipeId]);
         if (steps && steps.length > 0) {
-            const values = steps.map((step, idx) => [recipeId, step.step_number || (idx + 1), step.instruction, step.image_url || null, step.timer_seconds || 0]);
+            const values = steps.map((step, idx) => [recipeId, step.step_number || (idx + 1), cleanFoodText(step.instruction), step.image_url || null, step.timer_seconds || 0]);
             await pool.query('INSERT INTO recipe_steps (recipe_id, step_number, instruction, image_url, timer_seconds) VALUES ?', [values]);
         }
     }

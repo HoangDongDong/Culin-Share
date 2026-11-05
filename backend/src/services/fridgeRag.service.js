@@ -2,6 +2,7 @@ const repository = require('../repositories/recipe.repository');
 const embeddings = require('./embedding.service');
 const ai = require('./ai.service');
 const { shoppingPlan, storedSuggestion, normalize } = require('./fridgeMatching.service');
+const {cleanFoodText,cleanRecipeContent}=require('./foodText');
 
 // No ingredient synonym dictionary: equivalence is grounded in retrieved context.
 const identity = name => String(name || '').normalize('NFC').toLocaleLowerCase('vi').replace(/\s+/g, ' ').trim();
@@ -12,7 +13,8 @@ const document = recipe => JSON.stringify({ title: recipe.title, description: St
 
 class FridgeRagService {
     async retrieve(options) {
-        let candidates = (await repository.findPublishedForMatching()).filter(recipe => recipe.ingredients?.length);
+        options={...options,ingredients:options.ingredients.map(i=>({...i,name:cleanFoodText(i.name)}))};
+        let candidates = (await repository.findPublishedForMatching()).filter(recipe => recipe.ingredients?.length).map(cleanRecipeContent);
         if (!candidates.length) return [];
         // Bound embedding work after a bulk import. This coarse pass uses actual
         // ingredient text, not a hand-written synonym dictionary. Semantic ranking
@@ -36,6 +38,7 @@ class FridgeRagService {
     }
 
     async suggest(options) {
+        options={...options,ingredients:options.ingredients.map(i=>({...i,name:cleanFoodText(i.name)}))};
         const context = await this.retrieve(options);
         const generated = await ai.getFridgeSuggestions({ ...options, retrievedRecipes: context });
         return this.assemble(generated, context, options);
@@ -43,6 +46,9 @@ class FridgeRagService {
 
     assemble(generated, context, options) {
         if (!Array.isArray(generated?.recipes)) throw Object.assign(new Error('Phản hồi gợi ý món không hợp lệ.'), { statusCode: 502 });
+        context=context.map(cleanRecipeContent);
+        generated={...generated,recipes:generated.recipes.map(cleanRecipeContent)};
+        options={...options,ingredients:options.ingredients.map(i=>({...i,name:cleanFoodText(i.name)}))};
         const byId = new Map(context.map(recipe => [recipe.id, recipe]));
         const parents = new Map();
         const root = value => {

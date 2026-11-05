@@ -1,5 +1,6 @@
 // Matching and quantity arithmetic stay deterministic; AI cannot supply database IDs.
 const { isBasicPantry } = require('./pantryPolicy');
+const {cleanFoodText,cleanRecipeContent}=require('./foodText');
 const normalize = value => String(value || '').toLowerCase().normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd')
     .replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -40,6 +41,8 @@ const rounded = value => Math.round((value + Number.EPSILON) * 100) / 100;
 const label = (name, amount, unit) => `${rounded(amount)}${unit ? ` ${unit}` : ''} ${name}`.trim();
 
 function shoppingPlan(recipes, fridgeItems, keyFor = name => String(name || "").normalize("NFC").toLowerCase().trim()) {
+    recipes=recipes.map(cleanRecipeContent);
+    fridgeItems=fridgeItems.map(item=>item&&typeof item==='object'?{...item,name:cleanFoodText(item.name)}:item);
     const required = new Map(), available = new Map(), uncertain = new Set();
     const unmeasuredStock = new Set();
     for (const item of fridgeItems) {
