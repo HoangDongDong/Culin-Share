@@ -247,7 +247,13 @@ const RecipeDetailPage = () => {
       <Header />
 
       <main className="w-full px-6 sm:px-10 md:px-14 lg:px-20 xl:px-24 py-base flex-grow">
-        {recipe.importInfo&&<aside aria-label="Nguồn công thức" className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-stone-700"><p className="font-semibold mb-1">Công thức tham khảo từ ViFoodRec</p><p>Tài khoản đăng lại: {recipe.author_name}. Nội dung gốc: <a className="underline" href={recipe.importInfo.upstreamSite} target="_blank" rel="noopener noreferrer">{recipe.importInfo.upstreamSite}</a> · <a className="underline" href={recipe.importInfo.datasetUrl} target="_blank" rel="noopener noreferrer">Nguồn dữ liệu ViFoodRec</a>.</p><p className="mt-2">Nguồn chưa cung cấp riêng thời gian chuẩn bị và độ khó. Số liệu dinh dưỡng chưa xác minh đơn vị/khẩu phần nên chưa dùng cho phân tích sức khỏe.</p>{recipe.status!=='published'&&<p className="font-semibold mt-2">Bản nháp nhập liệu — cần kiểm tra ảnh và nội dung trước khi công khai.</p>}{recipe.importInfo.tips&&<p className="mt-2 whitespace-pre-wrap"><strong>Mách nhỏ từ nguồn: </strong>{recipe.importInfo.tips}</p>}</aside>}
+        {recipe.importInfo && (
+          <aside aria-label="Thông tin công thức" className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-stone-700">
+            <p>Nguồn chưa cung cấp riêng thời gian chuẩn bị và độ khó. Số liệu dinh dưỡng chưa xác minh đơn vị/khẩu phần nên chưa dùng cho phân tích sức khỏe.</p>
+            {recipe.status !== 'published' && <p className="font-semibold mt-2">Bản nháp nhập liệu — cần kiểm tra ảnh và nội dung trước khi công khai.</p>}
+            {recipe.importInfo.tips && <p className="mt-2 whitespace-pre-wrap"><strong>Mách nhỏ từ nguồn: </strong>{recipe.importInfo.tips}</p>}
+          </aside>
+        )}
         {/* Banner Section */}
         <section className="relative w-full mb-lg overflow-hidden rounded-xl select-none shadow-sm">
           <div className="aspect-[16/9] md:aspect-[21/9] w-full relative">
