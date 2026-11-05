@@ -2,6 +2,7 @@ const {randomUUID}=require('node:crypto');
 const {REVISION,AUTHORS,titleKey,distribute,quotas,hash}=require('./vifoodrec');
 const {classify,ensureCategories}=require('./recipe-categories-v1');
 const {cleanRecipeContent}=require('../../src/services/foodText');
+const {splitSteps}=require('../../src/services/recipeStepSplitter');
 const snapshotHash=(fields,ingredients,steps)=>hash(JSON.stringify([fields,ingredients,steps]));
 
 async function importRecipes(connection,prepared,{apply=false,status='draft',imageResults={},batchSize=50,log=()=>{}}={}){
@@ -30,7 +31,7 @@ async function importRecipes(connection,prepared,{apply=false,status='draft',ima
     try{
         const categoryIds=await ensureCategories(connection);
         for(let start=0;start<remaining.length;start+=batchSize){
-            const batch=remaining.slice(start,start+batchSize).map(raw=>({...cleanRecipeContent(raw),metadata:{...raw.metadata,originalContent:{title:raw.title,description:raw.description,steps:raw.steps}}}));await connection.beginTransaction();
+            const batch=remaining.slice(start,start+batchSize).map(raw=>{const clean=cleanRecipeContent(raw),split=splitSteps(clean.steps);return {...clean,steps:split.steps,metadata:{...raw.metadata,stepSegmentation:{version:1,spans:split.spans},originalContent:{title:raw.title,description:raw.description,steps:raw.steps}}};});await connection.beginTransaction();
             try{
                 const recipeValues=batch.map(row=>[authors.get(row.author),row.title,row.slug,row.description,row.image,null,row.cookTime,row.servings,null,null,status==='verified'?(imageResults[row.image]?.ok?'published':'draft'):status]);
                 await connection.query('INSERT INTO recipes(author_id,title,slug,description,cover_image_url,prep_time_minutes,cook_time_minutes,servings,calories,difficulty,status) VALUES ?',[recipeValues]);

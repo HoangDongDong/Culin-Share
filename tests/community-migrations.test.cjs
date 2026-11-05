@@ -60,7 +60,7 @@ test('fresh-database baseline never executes DROP DATABASE, DROP TABLE or USE', 
 test('schema and demo data run once, keep existing notification types and use only demo identities', async () => {
     const db = database();
     const first = await runMigrations({ connection: db.connection, seed: true, log() {} });
-    assert.deepEqual(first, { migrations: 6, seeds: 2 });
+    assert.deepEqual(first, { migrations: 7, seeds: 2 });
     const inserts = db.statements.filter(sql => sql.startsWith('INSERT INTO community_posts')).length;
     const second = await runMigrations({ connection: db.connection, seed: true, log() {} });
     assert.deepEqual(second, { migrations: 0, seeds: 0 });
@@ -77,7 +77,7 @@ test('interrupted DDL can be retried without marking the version as applied', as
     await assert.rejects(runMigrations({ connection: db.connection, seed: false, log() {} }), /simulated/);
     assert.equal(db.migrations.size, 0);
     assert.ok(db.statements.at(-1).includes('RELEASE_LOCK'));
-    assert.deepEqual(await runMigrations({ connection: db.connection, seed: false, log() {} }), { migrations: 6, seeds: 0 });
+    assert.deepEqual(await runMigrations({ connection: db.connection, seed: false, log() {} }), { migrations: 7, seeds: 0 });
 });
 
 test('an edited applied migration stops instead of replaying changes', async () => {

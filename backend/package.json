@@ -14,6 +14,7 @@
     "db:vifoodrec": "node database/import-vifoodrec.js",
     "db:classify-vifoodrec": "node database/classify-vifoodrec.js",
     "db:unbrand-recipes": "node database/unbrand-recipes.js",
+    "db:split-recipe-steps": "node database/split-recipe-steps.js",
     "db:verify-vifoodrec-local": "node database/verify-vifoodrec-local.js"
   },
   "keywords": [],
