@@ -1,0 +1,7 @@
+export const ABOUT_INTRO = 'Bếp Nhà Mình – CulinShare là cộng đồng khám phá và chia sẻ công thức nấu ăn cho bữa cơm gia đình. Tìm món theo nguyên liệu, học cách chế biến từng bước và chia sẻ trải nghiệm nấu ăn của bạn.';
+export const ABOUT_SECTIONS = [
+  {title:'Tìm cảm hứng cho bữa cơm nhà',text:'Khám phá công thức theo danh mục, nguyên liệu, thời gian chuẩn bị và chế biến, độ khó hoặc lượng calo được tác giả cung cấp. Mỗi công thức có trang riêng với nguyên liệu, định lượng và các bước thực hiện.',to:'/search',label:'Khám phá công thức nấu ăn'},
+  {title:'Chia sẻ công thức và kinh nghiệm thực tế',text:'Cộng đồng là nơi đăng thành quả, đặt câu hỏi và trao đổi kinh nghiệm nấu ăn. Trang công thức hiển thị tác giả; bạn có thể xem hồ sơ, theo dõi người chia sẻ và lưu món muốn nấu sau khi đăng nhập.',to:'/community',label:'Gặp cộng đồng yêu bếp'},
+  {title:'Gợi ý món từ nguyên liệu sẵn có',text:'Tủ lạnh AI nhận danh sách nguyên liệu và tùy chọn bữa ăn, tìm công thức đã xuất bản trong kho rồi kết hợp gợi ý từ AI. Bạn có thể xem nguyên liệu còn thiếu và tải danh sách đi chợ dạng PDF. Hãy kiểm tra lại định lượng và hướng dẫn trước khi nấu.',to:'/fridge',label:'Khám phá Tủ lạnh AI'},
+  {title:'Thông tin để bạn tự đánh giá công thức',text:'Đọc kỹ nguyên liệu, thời gian và các bước thực hiện; xem tác giả cùng nhận xét của cộng đồng. Khi chia sẻ, hãy ghi rõ định lượng, dùng ảnh có quyền sử dụng và nêu kinh nghiệm thực tế của mình. Điều chỉnh nguyên liệu theo khẩu vị và nhu cầu của gia đình.',to:'/submit-recipe',label:'Chia sẻ công thức của bạn'},
+];

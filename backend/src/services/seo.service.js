@@ -1,7 +1,7 @@
 const SITE_URL = 'https://bepnhaminh.page';
 const xml = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[char]));
 function sitemap(catalog) {
-    const entries = ['/', '/search', '/community', '/chefs'].map(path => ({ path }));
+    const entries = ['/', '/search', '/community', '/chefs', '/about'].map(path => ({ path }));
     for (const recipe of catalog.recipes) entries.push({ path: `/recipe/${recipe.id}`, modified: recipe.updated_at });
     for (const category of catalog.categories) entries.push({ path: `/category/${encodeURIComponent(category.slug)}`, modified: category.updated_at });
     for (const post of catalog.posts) entries.push({ path: `/community/posts/${post.id}`, modified: post.updated_at });

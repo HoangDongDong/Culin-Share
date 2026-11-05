@@ -90,7 +90,7 @@ const HomePage = () => {
               {/* Left Column: Title, Subtitle, Search Bar, Quick Filters */}
               <div className="lg:col-span-7 xl:col-span-6 flex flex-col justify-center">
                 <span className="font-bold text-xs uppercase tracking-[0.25em] text-[#ab2e10] mb-2 select-none">
-                  CULINSHARE
+                  BẾP NHÀ MÌNH · CULINSHARE
                 </span>
 
                 <h1 className="font-display text-4xl sm:text-5xl lg:text-[54px] font-bold text-stone-900 leading-[1.15] tracking-tight">
@@ -99,7 +99,7 @@ const HomePage = () => {
                 </h1>
 
                 <p className="text-stone-600 text-xs sm:text-sm md:text-base mt-3.5 max-w-lg leading-relaxed">
-                  Khám phá các công thức nấu ăn ngon, dễ làm và chia sẻ từ cộng đồng CulinShare.
+                  Bếp Nhà Mình – CulinShare: khám phá công thức nấu ăn ngon, dễ làm và chia sẻ kinh nghiệm cho bữa cơm gia đình.
                 </p>
 
                 {/* Search Bar */}

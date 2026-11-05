@@ -2,6 +2,13 @@
 
 Domain chuẩn: `https://bepnhaminh.page`. Metadata dùng tên CulinShare và Bếp Nhà Mình; nội dung mô tả công thức nấu ăn, cách nấu ăn ngon, món ngon mỗi ngày và cộng đồng chia sẻ công thức, không nhồi meta keywords.
 
+## Nhận diện thương hiệu — ngày 05/11/2026
+
+- Thống nhất tên chính **Bếp Nhà Mình – CulinShare** trong title trang chủ, description, Open Graph, Twitter Card, nội dung giới thiệu trên trang chủ/footer và schema WebSite/Organization. Giữ hai tên gọi thay thế Bếp Nhà Mình, CulinShare và favicon do chủ website cung cấp.
+- Thêm `/about` với nội dung giới thiệu các chức năng thật, liên kết đến công thức, cộng đồng, Tủ lạnh AI và đăng bài; không đặt thông tin liên hệ, thành tích hoặc kênh mạng xã hội giả. Trang có HTML SEO và nằm trong sitemap tự động.
+- Đã kiểm tra Search Console: trang chủ được lập chỉ mục, báo cáo Hiệu suất vẫn đang xử lý và chưa có dữ liệu để đánh giá từ khóa/thứ hạng. Không có cài đặt từ khóa để yêu cầu Google xếp hạng.
+- Chủ website xác nhận chưa có Facebook/YouTube/TikTok chính thức. Đã bỏ các liên kết mạng xã hội mặc định ở footer; không thêm `sameAs`, tạo tài khoản hoặc đăng bài quảng bá lên dịch vụ bên ngoài.
+
 ## Đã triển khai
 
 - Một title, description, canonical theo trang, Open Graph, Twitter Card và tiếng Việt. Trang tài khoản, quản trị, công cụ cá nhân, trang lỗi và biến thể tìm kiếm có query được `noindex`.

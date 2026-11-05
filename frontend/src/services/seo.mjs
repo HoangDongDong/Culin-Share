@@ -1,9 +1,10 @@
 export const SITE_URL = 'https://bepnhaminh.page';
-export const SITE_NAME = 'CulinShare – Bếp Nhà Mình';
-export const HOME_TITLE = 'CulinShare – Công thức nấu ăn ngon, món ngon mỗi ngày';
-export const HOME_DESCRIPTION = 'Khám phá công thức nấu ăn đơn giản, món ngon mỗi ngày, các món ăn gia đình và bí quyết nấu ăn. Chia sẻ công thức cùng cộng đồng CulinShare – Bếp Nhà Mình.';
+export const SITE_NAME = 'Bếp Nhà Mình – CulinShare';
+export const HOME_TITLE = 'Bếp Nhà Mình – CulinShare | Công thức nấu ăn ngon';
+export const HOME_DESCRIPTION = 'Bếp Nhà Mình – CulinShare chia sẻ công thức nấu ăn, món ngon mỗi ngày và kinh nghiệm nấu cơm gia đình. Khám phá món theo nguyên liệu và hướng dẫn từng bước.';
 export const PUBLIC_PAGES = {
   '/': {title: HOME_TITLE, description: HOME_DESCRIPTION},
+  '/about': {title:'Giới thiệu Bếp Nhà Mình – CulinShare',description:'Tìm hiểu cộng đồng Bếp Nhà Mình – CulinShare: công thức nấu ăn, chia sẻ kinh nghiệm, tìm món theo nguyên liệu và Tủ lạnh AI.'},
   '/search': {title: 'Khám phá công thức nấu ăn ngon | CulinShare', description: 'Tìm cách nấu món ngon cho gia đình. Lọc công thức theo nguyên liệu, thời gian, calo và độ khó trên Bếp Nhà Mình.'},
   '/community': {title: 'Cộng đồng chia sẻ công thức nấu ăn | CulinShare', description: 'Chia sẻ công thức nấu ăn, hỏi đáp và trao đổi bí quyết nấu ăn ngon mỗi ngày cùng cộng đồng CulinShare – Bếp Nhà Mình.'},
   '/chefs': {title: 'Đầu bếp và người chia sẻ công thức | CulinShare', description: 'Khám phá các tác giả và công thức nấu ăn từ cộng đồng yêu bếp CulinShare.'},
@@ -28,8 +29,9 @@ export function routeSeo(pathname, search = '') {
     noindex: (!page && !publicDetail) || Boolean(search),
     schema: path === '/' ? {
       '@context':'https://schema.org', '@type':'WebSite', name: SITE_NAME,
-      alternateName:['CulinShare','Bếp Nhà Mình'], url: SITE_URL + '/', inLanguage:'vi-VN',
+      '@id':SITE_URL+'/#website',alternateName:['Bếp Nhà Mình','CulinShare'], url: SITE_URL + '/', inLanguage:'vi-VN',
       description: HOME_DESCRIPTION,
+      publisher:{'@type':'Organization','@id':SITE_URL+'/#organization',name:SITE_NAME,url:SITE_URL+'/',logo:{'@type':'ImageObject',url:SITE_URL+'/favicon-community.png'}},
     } : null,
   };
 }

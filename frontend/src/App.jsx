@@ -3,6 +3,7 @@ import {useEffect} from 'react';
 import MobileNavigation from './components/MobileNavigation';
 import RouteSeo from './components/RouteSeo';
 import CategoryPage from './pages/CategoryPage';
+import AboutPage from './pages/AboutPage';
 import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -33,6 +34,7 @@ function App() {
     <RouteSeo/>
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/about" element={<AboutPage />} />
       <Route path="/search" element={<SearchPage />} />
       <Route path="/category/:slug" element={<CategoryPage />} />
       <Route path="/product/:id" element={<ProductDetailPage />} />

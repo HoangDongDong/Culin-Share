@@ -159,6 +159,7 @@ const Header = () => {
         {/* Brand Logo */}
         <Link
           to="/"
+          aria-label="Bếp Nhà Mình – CulinShare, trang chủ"
           className="font-display-lg text-[32px] sm:text-[38px] xl:text-[44px] text-primary select-none hover:opacity-90 flex-shrink-0"
         >
           CulinShare

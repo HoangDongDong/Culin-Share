@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {loadEnv} from 'vite';
+import {ABOUT_INTRO,ABOUT_SECTIONS} from '../src/services/aboutContent.mjs';
 import {SITE_URL,SITE_NAME,HOME_DESCRIPTION,PUBLIC_PAGES,PRIVATE_PAGES,routeSeo,recipeSeo,categorySeo,postSeo,escapeHtml as e,jsonLd} from '../src/services/seo.mjs';
 
 const frontend=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -57,7 +58,7 @@ try{
 }catch(error){console.warn(`SEO: chưa lấy được danh mục/bài cộng đồng (${error.message}).`);}
 const urls=Object.keys(PUBLIC_PAGES);
 for(const [url,meta] of Object.entries(PUBLIC_PAGES)){
-  const body=`<h1>${e(meta.title)}</h1><p>${e(meta.description)}</p>`+(url==='/'||url==='/search'?`<h2>Công thức nấu ăn và món ngon mỗi ngày</h2>${links(recipes)}<h2>Danh mục</h2><ul>${categories.map(category=>`<li><a href="/category/${e(encodeURIComponent(category.slug))}">${e(category.name)}</a></li>`).join('')}</ul>`:'');
+  const body=url==='/about'?`<h1>${e(SITE_NAME)}</h1><p>${e(ABOUT_INTRO)}</p>${ABOUT_SECTIONS.map(section=>`<section><h2>${e(section.title)}</h2><p>${e(section.text)}</p><a href="${e(section.to)}">${e(section.label)}</a></section>`).join('')}`:`<h1>${e(meta.title)}</h1><p>${e(meta.description)}</p>`+(url==='/'||url==='/search'?`<h2>Công thức nấu ăn và món ngon mỗi ngày</h2>${links(recipes)}<h2>Danh mục</h2><ul>${categories.map(category=>`<li><a href="/category/${e(encodeURIComponent(category.slug))}">${e(category.name)}</a></li>`).join('')}</ul><p><a href="/about">Giới thiệu Bếp Nhà Mình – CulinShare</a></p>`:'');
   await writePage(url,routeSeo(url),body);
 }
 let snapshots=0;
