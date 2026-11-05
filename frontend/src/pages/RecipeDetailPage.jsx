@@ -606,7 +606,7 @@ const RecipeDetailPage = () => {
 
             {/* Author Info */}
             <div className="bg-surface-container-lowest p-md rounded-xl recipe-shadow border border-outline-variant/10">
-              <h3 className="font-label-md text-primary mb-4 uppercase font-bold">Tác giả</h3>
+              <h3 className="font-label-md text-primary mb-4 uppercase font-bold">{recipe.importInfo ? 'Tài khoản đăng lại' : 'Tác giả'}</h3>
               <div className="flex items-center gap-4 mb-4">
                 <img
                   className="w-16 h-16 rounded-full object-cover shadow-sm cursor-pointer"

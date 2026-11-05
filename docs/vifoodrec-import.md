@@ -75,6 +75,16 @@ Kết quả ngày 05/11/2026:
 
 ## Rollback có kiểm tra
 
+### Kết quả TiDB production ngày 05/11/2026
+
+Đã áp dụng cùng dữ liệu và chính sách ảnh đã kiểm thử local lên database `culinshare`. Batch: `vfr-126caa3a8b58-0fed2069-e99e-45df-bb9e-e7da6613b6b7`.
+
+- Nhập 5.278 món: 1.183 published, 4.095 draft. Phân bổ hoanganh 2.217, chefquang 1.531, cheflan 1.530. Giữ 36 món cũ.
+- API production có tổng 1.219 món công khai, danh mục ViFoodRec có 1.183 món; phân trang không trùng và CORS đúng domain frontend.
+- Món mẫu [Bánh canh cua](https://bepnhaminh.page/recipe/35311) trả đủ nguyên liệu, bước nấu, nguồn ViFoodRec, ảnh tải được và không bịa calories. Khách gọi API một bản nháp trả 404; nháp không có trong catalog/sitemap.
+- Sitemap backend có 1.233 URL công khai. Chạy lại dry-run thấy `alreadyImported=5278`, `toInsert=0`.
+- Báo cáo riêng trong cache: `production-report.json`, `production-verification.json`, `production-repeat-dry-run.json`. Không đưa dữ liệu gốc hoặc cấu hình kết nối vào Git.
+
 Chỉ dùng batch ID từ báo cáo nhập, với `--apply --rollback-batch BATCH_ID` và đúng database/host. Công cụ khóa bản ghi, so snapshot nội dung lúc nhập, kiểm tra cập nhật/bình luận/đánh giá/lượt lưu/liên kết cộng đồng; nếu có thay đổi thì từ chối xóa. Không có snapshot an toàn cũng từ chối. Rollback giữ log batch, không xóa công thức ngoài batch.
 
 ## RAG và SEO sau nhập
