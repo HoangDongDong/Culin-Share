@@ -12,6 +12,7 @@
     "db:verify-community": "node database/verify-community.js",
     "db:verify-community-api": "node database/verify-community-api.js",
     "db:vifoodrec": "node database/import-vifoodrec.js",
+    "db:classify-vifoodrec": "node database/classify-vifoodrec.js",
     "db:verify-vifoodrec-local": "node database/verify-vifoodrec-local.js"
   },
   "keywords": [],

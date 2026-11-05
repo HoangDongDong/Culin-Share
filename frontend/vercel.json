@@ -1,5 +1,6 @@
 {
   "redirects": [
+    { "source": "/category/vifoodrec", "destination": "/search", "permanent": true },
     {
       "source": "/:path*",
       "has": [{ "type": "host", "value": "culin-share.vercel.app" }],

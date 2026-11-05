@@ -1,5 +1,6 @@
 const {randomUUID}=require('node:crypto');
 const {REVISION,AUTHORS,titleKey,distribute,quotas,hash}=require('./vifoodrec');
+const {classify,ensureCategories}=require('./recipe-categories-v1');
 const snapshotHash=(fields,ingredients,steps)=>hash(JSON.stringify([fields,ingredients,steps]));
 
 async function importRecipes(connection,prepared,{apply=false,status='draft',imageResults={},batchSize=50,log=()=>{}}={}){
@@ -26,10 +27,7 @@ async function importRecipes(connection,prepared,{apply=false,status='draft',ima
     summary.batchId=batchId;
     await connection.query('INSERT INTO recipe_import_batches(id,dataset,revision,status,summary) VALUES (?,?,?,?,?)',[batchId,'vifoodrec',REVISION,'running',JSON.stringify(summary)]);
     try{
-        let categoryId;
-        const [categories]=await connection.query("SELECT id FROM categories WHERE slug='vifoodrec'");
-        if(categories[0])categoryId=categories[0].id;
-        else{const [result]=await connection.query('INSERT INTO categories(name,slug,description) VALUES (?,?,?)',['Công thức ViFoodRec','vifoodrec','Công thức tham khảo từ bộ dữ liệu ViFoodRec; nguồn nội dung được ghi trên từng bài.']);categoryId=result.insertId;}
+        const categoryIds=await ensureCategories(connection);
         for(let start=0;start<remaining.length;start+=batchSize){
             const batch=remaining.slice(start,start+batchSize);await connection.beginTransaction();
             try{
@@ -42,7 +40,8 @@ async function importRecipes(connection,prepared,{apply=false,status='draft',ima
                     const recipeId=ids.get(row.slug);if(!recipeId)throw Error('Không xác định được ID sau bulk insert');
                     ingredientValues.push(...row.ingredients.map(i=>[recipeId,i.name,i.quantity,i.unit]));
                     stepValues.push(...row.steps.map(s=>[recipeId,s.step_number,s.instruction,0]));
-                    imageValues.push([recipeId,row.image]);categoryValues.push([recipeId,categoryId]);
+                    const classification=classify({title:row.title,ingredients:row.ingredients,rawDishType:row.category});
+                    imageValues.push([recipeId,row.image]);categoryValues.push([recipeId,categoryIds.get(classification.slug)]);
                     const fields=recipeValues[batch.indexOf(row)];
                     const snapshot=snapshotHash(fields,row.ingredients.map(i=>[i.name,i.quantity,i.unit]),row.steps.map(s=>[s.step_number,s.instruction,0]));
                     const metadata={...row.metadata,snapshotHash:snapshot,rawDishType:row.category,uploadedBy:row.author,sourceRecordId:row.recordId,ingredientParsing:'heuristic; raw source retained',imageVerification:imageResults[row.image]?.ok?'verified-image-response':'url-valid; availability requires separate check'};

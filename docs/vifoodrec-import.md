@@ -8,7 +8,7 @@ Nguồn dữ liệu được ghim tại commit `126caa3a8b58708a09b2b2e119ff4923
 - Giữ source key, hash dữ liệu, dataset revision, nguồn website, nguyên liệu gốc, ghi chú và dinh dưỡng nguồn trong bảng `recipe_imports`. Tài khoản đăng lại không được trình bày như tác giả gốc.
 - Phân bổ trên số món đủ điều kiện bằng quota nguyên gần nhất 42/29/29; xáo trộn xác định theo hash nguồn rồi phân bố rải rác. Chạy lại giữ nguyên kết quả và không ghi đè nội dung cũ.
 - Chuẩn bị, độ khó và dinh dưỡng chưa xác minh được lưu NULL; không bịa bước nấu, ảnh, đánh giá hoặc số kcal. Khẩu phần không đọc chắc chắn cũng để NULL. UI hiển thị trạng thái chưa xác minh và nguồn.
-- Danh mục `Công thức ViFoodRec` dùng để duyệt toàn bộ bài nhập. Phân loại thô và tags không được tự coi là chính xác: nguồn có những đồ uống bị ghi Món mặn. Chưa tự chia chúng vào các nhóm ẩm thực cụ thể.
+- Danh mục món ăn tách khỏi nguồn dữ liệu. Không dùng nhãn `Công thức ViFoodRec` trên thẻ món; nguồn ViFoodRec vẫn nằm trong bảng import và phần ghi nguồn chi tiết. Phân loại thô của dataset không được sao chép trực tiếp vì có đồ uống bị ghi Món mặn.
 - Chế độ `verified` chỉ công khai món có ảnh trả HTTP thành công, MIME ảnh và chữ ký JPEG/PNG/WebP/GIF. Món có URL nhưng ảnh chưa xác minh được vẫn được nhập dạng nháp, không đưa vào tìm kiếm công khai, sitemap hay RAG.
 - Lưu nguyên liệu dạng tên/định lượng/đơn vị theo parser có kiểm tra, giữ raw để đối chiếu. Các mô tả phức tạp có thể cần rà soát thủ công; không cam kết mọi cách viết định lượng đã được hiểu đầy đủ.
 
@@ -88,6 +88,21 @@ Kết quả ngày 05/11/2026:
 Chỉ dùng batch ID từ báo cáo nhập, với `--apply --rollback-batch BATCH_ID` và đúng database/host. Công cụ khóa bản ghi, so snapshot nội dung lúc nhập, kiểm tra cập nhật/bình luận/đánh giá/lượt lưu/liên kết cộng đồng; nếu có thay đổi thì từ chối xóa. Không có snapshot an toàn cũng từ chối. Rollback giữ log batch, không xóa công thức ngoài batch.
 
 ## RAG và SEO sau nhập
+
+### Phân loại lại ngày 05/11/2026
+
+`recipe-categories-v1.js` phân nhóm theo tên món, kiểm tra nguyên liệu khi dùng nhãn chay nguồn: Món nước, Hải sản, Món chay, Món ăn sáng, Món tráng miệng, Đồ uống, Các loại bánh, Gỏi & Salad, Gia vị & Nước sốt và Món mặn. Không suy diễn nhãn lành mạnh khi chưa xác minh dinh dưỡng. Các bánh chưa rõ ngọt/mặn nằm trong Các loại bánh; món còn lại dùng nhóm Món mặn rộng, cần biên tập tiếp nếu muốn phân nhóm chi tiết hơn.
+
+Migration `202611050002-recipe-food-categories` chuyển các bài còn nhãn placeholder và xóa danh mục ViFoodRec khi không còn liên kết. Chỉ thao tác bài thuộc ledger nhập; không xóa danh mục người biên tập đã chọn. Công cụ nhập mới cũng phân loại ngay bằng cùng quy tắc. Chạy lại không ghi đè bài đã được phân loại. Link danh mục cũ chuyển hướng về trang khám phá.
+
+```powershell
+# Xem trước bằng cấu hình local cụ thể; thêm --apply để ghi.
+npm run db:classify-vifoodrec -- --database YOUR_LOCAL_DATABASE --env-file YOUR_LOCAL_ENV
+# Đồng đội đã có dữ liệu chạy migration bình thường:
+npm run db:migrate
+```
+
+Đã kiểm tra local 5.278 món không thiếu danh mục, chạy lại 0 thay đổi, API và build frontend đạt; 61 kiểm thử đạt. Bánh canh cua/Bún ốc thuộc Món nước, Vịt nấu thơm thuộc Món mặn. Báo cáo dry-run và áp dụng nằm trong cache riêng, không commit dữ liệu gốc.
 
 RAG hiện có thêm bước chọn tối đa 128 ứng viên bằng giao từ vựng nguyên liệu trước embedding và xếp hạng ngữ nghĩa, cuối cùng tối đa 12 món vào prompt. Việc này giới hạn chi phí embedding sau bulk import, nhưng có thể bỏ sót tên nguyên liệu đồng nghĩa không giao từ vựng ở bước chọn thô. Không có bảng alias viết tay; bộ test dùng API giả lập, không chạy tạo hàng nghìn vector trả phí.
 
