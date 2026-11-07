@@ -15,6 +15,7 @@ const matches = [{ recipeId: 42, ingredientIndex: 0, fridgeIndex: 0, confidence:
 const newDish = { sourceRecipeId: null, name: 'Món mới', ingredients: [{ name: 'Gà', quantity: 100, unit: 'g' }], steps: ['Nấu chín kỹ.'], prepTime: 5, cookTime: 10 };
 
 test('RAG retrieves context before generation, using stored facts and estimated semantic matches', async t => {
+    t.mock.method(repo, 'findPublishedForMatching', async () => [recipe()]);
     const events = [];
     t.mock.method(rag, 'retrieve', async () => { events.push('retrieve'); return [recipe()]; });
     t.mock.method(ai, 'getFridgeSuggestions', async input => {
@@ -29,6 +30,21 @@ test('RAG retrieves context before generation, using stored facts and estimated 
     assert.equal(result.recipes[0].matchType, 'rag');
     assert.deepEqual(result.shoppingList, ['400 g Mì Quảng']);
     assert.equal(result.retrieval.method, 'rag');
+});
+
+test('embedding quota failure returns published recipes matched by ingredient without calling generation', async t => {
+    const matching = recipe({ ingredients: [{ name: 'Gà', quantity: 200, unit: 'g' }] });
+    t.mock.method(repo, 'findPublishedForMatching', async () => [matching, recipe({
+        id: 43, title: 'Món khác', ingredients: [{ name: 'Bò', quantity: 200, unit: 'g' }],
+    })]);
+    t.mock.method(embeddings, 'embed', async () => {
+        throw Object.assign(new Error('HTTP 429'), { statusCode: 503 });
+    });
+    const generate = t.mock.method(ai, 'getFridgeSuggestions', async () => {});
+    const result = await rag.suggest(options);
+    assert.equal(generate.mock.callCount(), 0);
+    assert.equal(result.retrieval.method, 'catalog');
+    assert.deepEqual(result.recipes.map(item => [item.recipeId, item.matchType]), [[42, 'ingredients']]);
 });
 
 test('semantic matches can promote a retrieved dish even if generation omits its ID', () => {

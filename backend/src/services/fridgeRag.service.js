@@ -6,15 +6,52 @@ const {cleanFoodText,cleanRecipeContent}=require('./foodText');
 
 // No ingredient synonym dictionary: equivalence is grounded in retrieved context.
 const identity = name => String(name || '').normalize('NFC').toLocaleLowerCase('vi').replace(/\s+/g, ' ').trim();
+const providerFailure = error => [500, 502, 503].includes(error.statusCode);
 const document = recipe => JSON.stringify({ title: recipe.title, description: String(recipe.description || '').slice(0, 1000),
     ingredients: recipe.ingredients.map(item => ({ name: item.name, quantity: item.quantity, unit: item.unit })),
     servings: recipe.servings, difficulty: recipe.difficulty,
     prepTime: recipe.prep_time_minutes, cookTime: recipe.cook_time_minutes });
 
 class FridgeRagService {
-    async retrieve(options) {
+    async loadCatalog() {
+        return (await repository.findPublishedForMatching())
+            .filter(recipe => recipe.ingredients?.length)
+            .map(cleanRecipeContent);
+    }
+
+    suggestFromCatalog(catalog, options) {
+        const available = new Set(options.ingredients.map(item => identity(item.name)));
+        const names = new Set();
+        const recipes = catalog.map(recipe => {
+            const ingredients = new Set(recipe.ingredients.map(item => identity(item.name)).filter(Boolean));
+            const matched = [...ingredients].filter(name => available.has(name)).length;
+            return { recipe, matched, total: ingredients.size };
+        }).filter(entry => entry.matched > 0)
+            .sort((a, b) => b.matched - a.matched || a.total - b.total || a.recipe.id - b.recipe.id)
+            .filter(({ recipe }) => {
+                const name = identity(recipe.title);
+                if (names.has(name)) return false;
+                names.add(name);
+                return true;
+            })
+            .slice(0, options.dishCount)
+            .map(({ recipe, matched, total }) => storedSuggestion(recipe, options.peopleCount, {
+                matchType: 'ingredients',
+                matchedIngredientCount: matched,
+                totalIngredientCount: total,
+                ingredientCoverage: matched / total,
+            }));
+        if (!recipes.length) {
+            throw Object.assign(new Error('Chưa tìm thấy món trong kho khớp nguyên liệu. Bạn thử thêm hoặc đổi nguyên liệu nhé.'), { statusCode: 422 });
+        }
+        return { ...shoppingPlan(recipes, options.ingredients), retrieval: {
+            method: 'catalog', retrievedCount: recipes.length, ingredientMatching: 'exact-name',
+        } };
+    }
+
+    async retrieve(options, catalog) {
         options={...options,ingredients:options.ingredients.map(i=>({...i,name:cleanFoodText(i.name)}))};
-        let candidates = (await repository.findPublishedForMatching()).filter(recipe => recipe.ingredients?.length).map(cleanRecipeContent);
+        let candidates = catalog ?? await this.loadCatalog();
         if (!candidates.length) return [];
         // Bound embedding work after a bulk import. This coarse pass uses actual
         // ingredient text, not a hand-written synonym dictionary. Semantic ranking
@@ -39,9 +76,16 @@ class FridgeRagService {
 
     async suggest(options) {
         options={...options,ingredients:options.ingredients.map(i=>({...i,name:cleanFoodText(i.name)}))};
-        const context = await this.retrieve(options);
-        const generated = await ai.getFridgeSuggestions({ ...options, retrievedRecipes: context });
-        return this.assemble(generated, context, options);
+        const catalog = await this.loadCatalog();
+        try {
+            const context = await this.retrieve(options, catalog);
+            const generated = await ai.getFridgeSuggestions({ ...options, retrievedRecipes: context });
+            return this.assemble(generated, context, options);
+        } catch (error) {
+            if (!providerFailure(error) || !catalog.length) throw error;
+            console.warn('Gợi ý tủ lạnh chuyển sang kho công thức:', error.statusCode);
+            return this.suggestFromCatalog(catalog, options);
+        }
     }
 
     assemble(generated, context, options) {
@@ -60,6 +104,7 @@ class FridgeRagService {
         const accepted = new Map();
         const exactStockNames = new Set(options.ingredients.map(item => identity(item.name)));
         for (const match of Array.isArray(generated.ingredientMatches) ? generated.ingredientMatches : []) {
+            if (!match || typeof match !== 'object') continue;
             const recipe = byId.get(match.recipeId);
             if (!recipe || !Number.isInteger(match.ingredientIndex) || !Number.isInteger(match.fridgeIndex) ||
                 !recipe.ingredients[match.ingredientIndex] || !options.ingredients[match.fridgeIndex] ||
@@ -82,6 +127,7 @@ class FridgeRagService {
         };
         const chosen = new Map(), aiRecipes = [], aiNames = new Set();
         for (const suggestion of generated.recipes) {
+            if (!suggestion || typeof suggestion !== 'object') continue;
             if (suggestion.sourceRecipeId !== null && suggestion.sourceRecipeId !== undefined) {
                 const recipe = byId.get(suggestion.sourceRecipeId);
                 // A fabricated or non-retrieved ID is never displayed as a real recipe.

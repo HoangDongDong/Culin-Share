@@ -90,6 +90,7 @@ Hãy chỉ trả về dữ liệu JSON thô. Không bọc trong cặp dấu nhá
         let attempt = 0;
         const maxAttempts = 3;
         const activeModel = modelName;
+        const signal = AbortSignal.timeout(25_000);
 
         while (attempt < maxAttempts) {
             attempt++;
@@ -115,11 +116,11 @@ Hãy chỉ trả về dữ liệu JSON thô. Không bọc trong cặp dấu nhá
                             responseMimeType: 'application/json'
                         }
                     }),
-                    signal: AbortSignal.timeout(45000)
+                    signal
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Gemini API Error: ${response.status}`);
+                    throw Object.assign(new Error(`Gemini API Error: ${response.status}`), { providerStatus: response.status });
                 }
 
                 const data = await response.json();
@@ -135,7 +136,8 @@ Hãy chỉ trả về dữ liệu JSON thô. Không bọc trong cặp dấu nhá
             } catch (error) {
                 console.warn(`⚠️ Lỗi ở lần thử ${attempt}:`, error.message);
                 
-                if (attempt < maxAttempts) {
+                if (attempt < maxAttempts && !signal.aborted &&
+                    (!error.providerStatus || error.providerStatus >= 500)) {
                     // Chờ 3 giây trước khi thử lại
                     await new Promise(resolve => setTimeout(resolve, 3000));
                 } else {

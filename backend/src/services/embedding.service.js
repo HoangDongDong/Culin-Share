@@ -16,6 +16,7 @@ class EmbeddingService {
         this.cachePath = cachePath;
         this.cache = new Map();
         this.loaded = false;
+        this.rateLimitedUntil = 0;
         this.queue = Promise.resolve();
     }
 
@@ -40,16 +41,21 @@ class EmbeddingService {
         }
         const keys = texts.map(text => createHash('sha256').update(JSON.stringify([model, 768, taskType, text])).digest('hex'));
         const result = keys.map(key => cache ? this.cache.get(key) : undefined);
+        const signal = AbortSignal.timeout(12_000);
         let changed = false;
         for (let start = 0; start < texts.length; start += 50) {
             const indexes = texts.slice(start, start + 50).map((_, offset) => start + offset).filter(index => !result[index]);
             if (!indexes.length) continue;
+            if (Date.now() < this.rateLimitedUntil) {
+                throw Object.assign(new Error('Dịch vụ tạo vector đang giới hạn yêu cầu (HTTP 429).'), { statusCode: 503 });
+            }
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:batchEmbedContents`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
                 body: JSON.stringify({ requests: indexes.map(index => ({ model: `models/${model}`, taskType,
                     outputDimensionality: 768, content: { parts: [{ text: texts[index] }] } })) }),
-                signal: AbortSignal.timeout(30000),
+                signal,
             }).catch(() => { throw Object.assign(new Error('Không kết nối được dịch vụ tìm kiếm công thức. Vui lòng thử lại.'), { statusCode: 503 }); });
+            if (response.status === 429) this.rateLimitedUntil = Date.now() + 60_000;
             if (!response.ok) throw Object.assign(new Error(`Không thể tạo vector tìm công thức (HTTP ${response.status}). Vui lòng thử lại.`), { statusCode: 503 });
             const payload = await response.json();
             if (payload.embeddings?.length !== indexes.length || payload.embeddings.some(item => !validVector(item.values))) {
