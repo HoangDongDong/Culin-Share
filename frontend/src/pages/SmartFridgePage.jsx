@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import api, { getImageUrl } from "../services/api";
@@ -22,13 +22,10 @@ const recipeIngredientLabel = ingredient => {
 
 const SmartFridgePage = () => {
   const navigate = useNavigate();
-  const requireSession = () => {
+  const draft = useLocation().state?.fridgeDraft;
+  const hasSession = () => {
     const token = localStorage.getItem("token");
-    if (token && token !== "null" && token !== "undefined") return true;
-    navigate("/login", { replace: true, state: {
-      from: "/fridge", message: "Vui lòng đăng nhập để nhận gợi ý món ăn từ tủ lạnh.",
-    } });
-    return false;
+    return token && token !== "null" && token !== "undefined";
   };
   const [fridgeItems, setFridgeItems] = useState(() => {
     try {
@@ -40,9 +37,9 @@ const SmartFridgePage = () => {
   });
   const [inputValue, setInputValue] = useState("");
   const [inputQuantity, setInputQuantity] = useState("");
-  const [peopleCount, setPeopleCount] = useState(2);
-  const [dishDistribution, setDishDistribution] = useState({ easy: 1, medium: 1, hard: 1 });
-  const [cookingSpeed, setCookingSpeed] = useState("bình thường");
+  const [peopleCount, setPeopleCount] = useState(draft?.peopleCount ?? 2);
+  const [dishDistribution, setDishDistribution] = useState(draft?.dishDistribution ?? { easy: 1, medium: 1, hard: 1 });
+  const [cookingSpeed, setCookingSpeed] = useState(draft?.cookingSpeed ?? "bình thường");
   const [loading, setLoading] = useState(false);
   const [pdfBusy,setPdfBusy]=useState(false),[pdfError,setPdfError]=useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -152,38 +149,38 @@ const SmartFridgePage = () => {
   };
 
   const handleAutoDistribute = async (timeLimitMinutes, currentPeople = peopleCount) => {
-    if (!requireSession()) return;
     setCookingSpeed(`${timeLimitMinutes} phút`);
-    
-    try {
-      setLoading(true);
-      const res = await api.post("/api/ai/distribute-dishes", {
-        peopleCount: currentPeople,
-        cookingTime: timeLimitMinutes
-      });
-      if (res.data.success && res.data.data) {
-        const { easy, medium, hard } = res.data.data;
-        setDishDistribution({ easy: easy || 0, medium: medium || 0, hard: hard || 0 });
+
+    if (hasSession()) {
+      try {
+        setLoading(true);
+        const res = await api.post("/api/ai/distribute-dishes", {
+          peopleCount: currentPeople,
+          cookingTime: timeLimitMinutes
+        });
+        if (res.data.success && res.data.data) {
+          const { easy, medium, hard } = res.data.data;
+          setDishDistribution({ easy: easy || 0, medium: medium || 0, hard: hard || 0 });
+          return;
+        }
+      } catch (error) {
+        if (error.response?.status === 401) return;
+        console.error("Lỗi khi dùng AI chia món:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      if (error.response?.status === 401) return;
-      console.error("Lỗi khi dùng AI chia món:", error);
-      // Fallback logic
-      let target = Math.min(6, currentPeople > 3 ? currentPeople : currentPeople + 1);
-      let easy = 0, medium = 0, hard = 0, t = timeLimitMinutes;
-      if (t >= 60 && currentPeople >= 3) { hard = 1; t -= 60; }
-      while (t >= 30 && (easy + medium + hard) < target) { medium++; t -= 30; }
-      while (t >= 15 && (easy + medium + hard) < target) { easy++; t -= 15; }
-      while (t >= 15 && easy > 0) { easy--; medium++; t -= 15; }
-      if (easy === 0 && medium === 0 && hard === 0) easy = 1;
-      setDishDistribution({ easy, medium, hard });
-    } finally {
-      setLoading(false);
     }
+    const target = Math.min(6, currentPeople > 3 ? currentPeople : currentPeople + 1);
+    let easy = 0, medium = 0, hard = 0, t = timeLimitMinutes;
+    if (t >= 60 && currentPeople >= 3) { hard = 1; t -= 60; }
+    while (t >= 30 && (easy + medium + hard) < target) { medium++; t -= 30; }
+    while (t >= 15 && (easy + medium + hard) < target) { easy++; t -= 15; }
+    while (t >= 15 && easy > 0) { easy--; medium++; t -= 15; }
+    if (easy === 0 && medium === 0 && hard === 0) easy = 1;
+    setDishDistribution({ easy, medium, hard });
   };
 
   const handleGetSuggestions = async () => {
-    if (!requireSession()) return;
     if (fridgeItems.length === 0) {
       setError("Vui lòng thêm ít nhất một nguyên liệu vào tủ lạnh!");
       return;
@@ -195,6 +192,14 @@ const SmartFridgePage = () => {
     }
     if (totalDishes > 7) {
       setError("Vui lòng chọn tối đa 7 món ăn để AI phân tích tốt nhất!");
+      return;
+    }
+    if (!hasSession()) {
+      navigate("/login", { state: {
+        from: "/fridge",
+        message: "Vui lòng đăng nhập để nhận gợi ý món ăn từ tủ lạnh.",
+        fridgeDraft: { fridgeItems, peopleCount, dishDistribution, cookingSpeed },
+      } });
       return;
     }
 

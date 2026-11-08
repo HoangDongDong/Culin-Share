@@ -16,6 +16,12 @@ const LoginPage = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [message, setMessage] = useState(location.state?.message || "");
 
+  const finishLogin = () => {
+    const fridgeDraft = returnTo === "/fridge" ? location.state?.fridgeDraft : null;
+    if (fridgeDraft) localStorage.setItem("fridgeItems", JSON.stringify(fridgeDraft.fridgeItems));
+    navigate(returnTo, { replace: true, state: fridgeDraft ? { fridgeDraft } : null });
+  };
+
   const handleGoogleLoginSuccess = async (response) => {
     const idToken = response.credential;
     setGoogleLoading(true);
@@ -24,7 +30,7 @@ const LoginPage = () => {
       const res = await googleLoginApi(idToken);
       if (res.success) {
         dispatch(setGoogleAuth(res.data));
-        navigate(returnTo, { replace: true });
+        finishLogin();
       } else {
         setMessage(res.message || "Đăng nhập bằng Google thất bại.");
       }
@@ -73,7 +79,7 @@ const LoginPage = () => {
     try {
       const resultAction = await dispatch(loginAccount({ username: usernameOrEmail, password }));
       if (loginAccount.fulfilled.match(resultAction)) {
-        navigate(returnTo, { replace: true });
+        finishLogin();
       } else {
         setMessage(resultAction.payload || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.");
       }

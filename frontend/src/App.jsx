@@ -21,7 +21,6 @@ import SavedRecipesPage from "./pages/SavedRecipesPage.jsx";
 import AdminDashboardPage from "./pages/AdminDashboardPage.jsx";
 import AdminRoute from "./components/AdminRoute.jsx";
 import SmartFridgePage from "./pages/SmartFridgePage.jsx";
-import RequireAuth from "./components/RequireAuth.jsx";
 import ErrorPage from "./pages/ErrorPage.jsx";
 import CommunityPage from "./pages/CommunityPage.jsx";
 
@@ -52,7 +51,7 @@ function App() {
       <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/fridge" element={<RequireAuth><SmartFridgePage /></RequireAuth>} />
+      <Route path="/fridge" element={<SmartFridgePage />} />
       <Route path="*" element={<ErrorPage />} />
     </Routes>
     <MobileNavigation/>
