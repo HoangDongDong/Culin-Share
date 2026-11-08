@@ -23,12 +23,14 @@ import AdminRoute from "./components/AdminRoute.jsx";
 import SmartFridgePage from "./pages/SmartFridgePage.jsx";
 import ErrorPage from "./pages/ErrorPage.jsx";
 import CommunityPage from "./pages/CommunityPage.jsx";
+import { AuthPromptProvider, ProtectedPage } from "./components/AuthPrompt";
 
 function App() {
   const {pathname}=useLocation();
   const page=pathname==='/'?'home':pathname.split('/')[1];
   useEffect(()=>{window.scrollTo({top:0,left:0,behavior:'auto'});},[pathname]);
   return (
+    <AuthPromptProvider>
     <div className="app-shell" data-page={page}>
     <RouteSeo/>
     <Routes>
@@ -38,17 +40,17 @@ function App() {
       <Route path="/category/:slug" element={<CategoryPage />} />
       <Route path="/product/:id" element={<ProductDetailPage />} />
       <Route path="/recipe/:id" element={<RecipeDetailPage />} />
-      <Route path="/edit-recipe/:id" element={<EditRecipePage />} />
+      <Route path="/edit-recipe/:id" element={<ProtectedPage><EditRecipePage /></ProtectedPage>} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/profile" element={<ProtectedPage><ProfilePage /></ProtectedPage>} />
       <Route path="/chef/:id" element={<ChefProfilePage />} />
       <Route path="/chefs" element={<TopChefsPage />} />
       <Route path="/community" element={<CommunityPage />} />
       <Route path="/community/posts/:id" element={<CommunityPage />} />
-      <Route path="/submit-recipe" element={<SubmitRecipePage />} />
-      <Route path="/saved-recipes" element={<SavedRecipesPage />} />
-      <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
+      <Route path="/submit-recipe" element={<ProtectedPage><SubmitRecipePage /></ProtectedPage>} />
+      <Route path="/saved-recipes" element={<ProtectedPage><SavedRecipesPage /></ProtectedPage>} />
+      <Route path="/admin" element={<ProtectedPage><AdminRoute><AdminDashboardPage /></AdminRoute></ProtectedPage>} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/fridge" element={<SmartFridgePage />} />
@@ -56,6 +58,7 @@ function App() {
     </Routes>
     <MobileNavigation/>
     </div>
+    </AuthPromptProvider>
   );
 }
 

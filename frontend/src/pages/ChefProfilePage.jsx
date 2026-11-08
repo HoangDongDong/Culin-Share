@@ -1,3 +1,4 @@
+import { useRequireLogin } from "../components/AuthPrompt";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -20,6 +21,7 @@ import {
 const ChefProfilePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const requireLogin = useRequireLogin();
   const { user } = useSelector((state) => state.auth);
 
   const [activeTab, setActiveTab] = useState("my-recipes");
@@ -77,10 +79,7 @@ const ChefProfilePage = () => {
   }, [id, user]);
 
   const handleFollowToggle = async () => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
+    if (!requireLogin({ message: "Đăng nhập để theo dõi đầu bếp." })) return;
     try {
       if (isFollowed) {
         await unfollowUserApi(id);

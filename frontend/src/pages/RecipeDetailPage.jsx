@@ -1,3 +1,4 @@
+import { useRequireLogin } from "../components/AuthPrompt";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -24,6 +25,7 @@ import {
 const RecipeDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const requireLogin = useRequireLogin();
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
   const [checkedIngredients, setCheckedIngredients] = useState([]);
@@ -124,11 +126,7 @@ const RecipeDetailPage = () => {
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    if (!token) {
-      alert("Vui lòng đăng nhập để bình luận!");
-      navigate("/login");
-      return;
-    }
+    if (!requireLogin({ message: "Đăng nhập để bình luận." })) return;
     if (!commentText.trim()) return;
 
     try {
@@ -156,11 +154,7 @@ const RecipeDetailPage = () => {
   };
 
   const handleFollowToggle = async () => {
-    if (!token) {
-      alert("Vui lòng đăng nhập để theo dõi đầu bếp!");
-      navigate("/login");
-      return;
-    }
+    if (!requireLogin({ message: "Đăng nhập để theo dõi đầu bếp." })) return;
     try {
       if (isFollowed) {
         await unfollowUserApi(recipe.author_id);
@@ -175,11 +169,7 @@ const RecipeDetailPage = () => {
   };
 
   const handleSaveToggle = async () => {
-    if (!token || token === "null" || token === "undefined") {
-      alert("Vui lòng đăng nhập để lưu công thức!");
-      navigate("/login");
-      return;
-    }
+    if (!requireLogin({ message: "Đăng nhập để lưu công thức." })) return;
     try {
       if (isSaved) {
         await unsaveRecipeApi(id);
@@ -195,11 +185,7 @@ const RecipeDetailPage = () => {
 
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
-    if (!token) {
-      alert("Vui lòng đăng nhập để đánh giá món ăn!");
-      navigate("/login");
-      return;
-    }
+    if (!requireLogin({ message: "Đăng nhập để đánh giá món ăn." })) return;
     try {
       setSubmittingReview(true);
       await submitReviewApi(id, userRating, reviewComment);
@@ -601,7 +587,7 @@ const RecipeDetailPage = () => {
                     Cập nhật chiều cao, cân nặng trên trang cá nhân để xem phân tích phần trăm dinh dưỡng món ăn so với nhu cầu hàng ngày của bạn!
                   </p>
                   <button
-                    onClick={() => navigate("/profile")}
+onClick={() => { if (requireLogin({ from: "/profile" })) navigate("/profile"); }}
                     className="w-full py-2 bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/20 rounded-full font-label-md font-bold transition-all text-center text-xs cursor-pointer"
                   >
                     Thiết lập chỉ số sức khỏe

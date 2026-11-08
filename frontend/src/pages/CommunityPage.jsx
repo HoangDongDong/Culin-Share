@@ -1,3 +1,4 @@
+import { useRequireLogin } from "../components/AuthPrompt";
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -52,7 +53,7 @@ export default function CommunityPage(){
   const [activity,setActivity]=useState(null);
   const [composer,setComposer]=useState(false),[selectedChallenge,setSelectedChallenge]=useState(null),[event,setEvent]=useState(null),[busy,setBusy]=useState('');
   const refresh=()=>setRevision(value=>value+1);
-  const requireLogin=useCallback(()=>{const token=localStorage.getItem('token');if(user&&token&&token!=='null'&&token!=='undefined')return true;navigate('/login',{state:{from:'/community',message:'Đăng nhập để chia sẻ và tương tác trong cộng đồng.'}});return false;},[user,navigate]);
+  const requireLogin = useRequireLogin();
   useEffect(()=>{const controller=new AbortController();communityApi.metadata(controller.signal).then(data=>{setMetadata(data);setMetaError('');}).catch(err=>{if(err.code!=='ERR_CANCELED')setMetaError(communityError(err));});return()=>controller.abort();},[user?.id,revision]);
   useEffect(()=>{const open=()=>{if(requireLogin()){setSelectedChallenge(null);setComposer(true);}};window.addEventListener('open-community-composer',open);return()=>window.removeEventListener('open-community-composer',open);},[requireLogin]);
   const chooseTab=value=>{if(['saved','following','mine'].includes(value)&&!requireLogin())return;setActiveTab(value);setSelectedChallenge(null);if(postId)navigate('/community');};

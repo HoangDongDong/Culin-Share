@@ -3,11 +3,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { loginAccount, setGoogleAuth } from "../store/authSlice";
 import { googleLoginApi } from "../services/authApi";
+import { finishAuthNavigation } from "../services/authNavigation";
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const returnTo = ["/fridge", "/community"].includes(location.state?.from) ? location.state.from : "/";
   const dispatch = useDispatch();
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,11 +16,7 @@ const LoginPage = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [message, setMessage] = useState(location.state?.message || "");
 
-  const finishLogin = () => {
-    const fridgeDraft = returnTo === "/fridge" ? location.state?.fridgeDraft : null;
-    if (fridgeDraft) localStorage.setItem("fridgeItems", JSON.stringify(fridgeDraft.fridgeItems));
-    navigate(returnTo, { replace: true, state: fridgeDraft ? { fridgeDraft } : null });
-  };
+  const finishLogin = () => finishAuthNavigation(navigate, location.state);
 
   const handleGoogleLoginSuccess = async (response) => {
     const idToken = response.credential;
@@ -210,7 +206,7 @@ const LoginPage = () => {
             <div className="text-center">
               <p className="font-body-md text-body-md text-on-surface-variant">
                 Chưa có tài khoản?{" "}
-                <Link to="/register" className="text-primary font-bold hover:underline">
+                <Link to="/register" state={location.state} className="text-primary font-bold hover:underline">
                   Đăng ký ngay
                 </Link>
               </p>

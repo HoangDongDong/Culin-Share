@@ -1,5 +1,6 @@
+import { useRequireLogin } from "../components/AuthPrompt";
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import api, { getImageUrl } from "../services/api";
@@ -21,7 +22,7 @@ const recipeIngredientLabel = ingredient => {
 };
 
 const SmartFridgePage = () => {
-  const navigate = useNavigate();
+  const requireLogin = useRequireLogin();
   const draft = useLocation().state?.fridgeDraft;
   const hasSession = () => {
     const token = localStorage.getItem("token");
@@ -194,14 +195,10 @@ const SmartFridgePage = () => {
       setError("Vui lòng chọn tối đa 7 món ăn để AI phân tích tốt nhất!");
       return;
     }
-    if (!hasSession()) {
-      navigate("/login", { state: {
-        from: "/fridge",
-        message: "Vui lòng đăng nhập để nhận gợi ý món ăn từ tủ lạnh.",
-        fridgeDraft: { fridgeItems, peopleCount, dishDistribution, cookingSpeed },
-      } });
-      return;
-    }
+    if (!requireLogin({
+      message: "Đăng nhập để nhận gợi ý món ăn từ tủ lạnh.",
+      fridgeDraft: { fridgeItems, peopleCount, dishDistribution, cookingSpeed },
+    })) return;
 
     try {
       setLoading(true);

@@ -1,5 +1,6 @@
+import { useRequireLogin } from "./AuthPrompt";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { getImageUrl } from "../services/api";
 import {
   checkSavedStatusApi,
@@ -8,7 +9,7 @@ import {
 } from "../services/recipeApi";
 
 const RecipeCard = ({ recipe, initiallySaved = false, onSavedChange }) => {
-  const navigate = useNavigate();
+  const requireLogin = useRequireLogin();
   const [isLiked, setIsLiked] = useState(initiallySaved);
   const [isSaving, setIsSaving] = useState(false);
   const recipeId = recipe.id || 1;
@@ -34,10 +35,7 @@ const RecipeCard = ({ recipe, initiallySaved = false, onSavedChange }) => {
   const handleLikeClick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!token) {
-      navigate("/login");
-      return;
-    }
+    if (!requireLogin({ message: "Đăng nhập để lưu công thức." })) return;
 
     try {
       setIsSaving(true);

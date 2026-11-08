@@ -1,3 +1,4 @@
+import { AuthLink } from "./AuthPrompt";
 import SearchSuggestions from './SearchSuggestions';
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -327,13 +328,13 @@ const Header = () => {
               <span>Đăng bài viết</span>
             </button>
           ) : (
-            <Link
+            <AuthLink
               to="/submit-recipe"
               className="hidden sm:inline-flex items-center gap-1.5 bg-[#9E381E] hover:bg-[#852c16] active:scale-[0.98] text-white text-xs xl:text-sm font-medium px-3.5 xl:px-4.5 py-2 h-9 xl:h-10 rounded-xl shadow-xs hover:shadow transition-all whitespace-nowrap flex-shrink-0"
             >
               <PlusIcon className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
               <span>Đăng công thức</span>
-            </Link>
+            </AuthLink>
           )}
 
           {/* Mobile Menu Toggle Button */}
@@ -412,14 +413,14 @@ const Header = () => {
               {user&&<Link to="/saved-recipes" onClick={()=>setMobileMenuOpen(false)} className={linkClass('/saved-recipes')}><span className="material-symbols-outlined text-lg">bookmark</span><span>Món đã lưu</span></Link>}
               {user?.role==='admin'&&<Link to="/admin" onClick={()=>setMobileMenuOpen(false)} className={linkClass('/admin')}><span className="material-symbols-outlined text-lg">dashboard</span><span>Quản trị</span></Link>}
               <div className="pt-2 mt-2 border-t border-stone-100 sm:hidden">
-                <Link
+                <AuthLink
                   to="/submit-recipe"
                   onClick={() => setMobileMenuOpen(false)}
                   className="w-full flex items-center justify-center gap-1.5 bg-[#9E381E] hover:bg-[#852c16] text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-xs"
                 >
                   <PlusIcon className="w-4 h-4" />
                   <span>Đăng công thức</span>
-                </Link>
+                </AuthLink>
               </div>
             </nav>
           </div>

@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { registerAccount, setGoogleAuth } from "../store/authSlice";
 import { verifyOtpApi, googleLoginApi } from "../services/authApi";
+import { finishAuthNavigation } from "../services/authNavigation";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const { state } = useLocation();
   const dispatch = useDispatch();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -25,7 +27,7 @@ const RegisterPage = () => {
       const res = await googleLoginApi(idToken);
       if (res.success) {
         dispatch(setGoogleAuth(res.data));
-        navigate("/");
+        finishAuthNavigation(navigate, state);
       } else {
         setMessage(res.message || "Đăng ký bằng Google thất bại.");
       }
@@ -101,7 +103,7 @@ const RegisterPage = () => {
       await verifyOtpApi(email, otpCode);
       setMessage("Xác thực thành công! Đang chuyển hướng sang trang đăng nhập...");
       setTimeout(() => {
-        navigate("/login");
+        navigate("/login", { state });
       }, 1500);
     } catch (err) {
       setMessage(err.message || "Mã OTP không chính xác hoặc đã hết hạn.");
@@ -277,7 +279,7 @@ const RegisterPage = () => {
             <div className="text-center">
               <p className="font-body-md text-body-md text-on-surface-variant">
                 Đã có tài khoản?{" "}
-                <Link to="/login" className="text-primary font-bold hover:underline">
+                <Link to="/login" state={state} className="text-primary font-bold hover:underline">
                   Đăng nhập
                 </Link>
               </p>

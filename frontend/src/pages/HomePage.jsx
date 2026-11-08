@@ -1,3 +1,4 @@
+import { AuthLink, useRequireLogin } from "../components/AuthPrompt";
 import SearchSuggestions from '../components/SearchSuggestions';
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -44,7 +45,7 @@ const HomePage = () => {
   const followedChefs=Object.fromEntries(home.chefs.map(chef=>[chef.id,!!chef.followed]));
   const handleSearchSubmit=event=>{event.preventDefault();navigate(searchQuery.trim()?'/search?q='+encodeURIComponent(searchQuery.trim()):'/search');};
   const handleFilterClick=tag=>navigate('/search?category='+encodeURIComponent(tag));
-  const requireLogin=()=>{if(user)return true;navigate('/login',{state:{from:{pathname:'/'},message:'Đăng nhập để lưu công thức và theo dõi đầu bếp.'}});return false;};
+  const requireLogin = useRequireLogin();
   const mutate=async(key,action,update)=>{
     if(!requireLogin()||locks.current.has(key))return;
     locks.current.add(key);setPending(current=>({...current,[key]:true}));
@@ -505,13 +506,13 @@ const HomePage = () => {
       <Footer />
 
       {/* Floating Action Button */}
-      <Link
+      <AuthLink
         to="/submit-recipe"
         className="fixed bottom-6 right-6 w-14 h-14 bg-[#ab2e10] text-white rounded-full shadow-2xl flex items-center justify-center active:scale-95 transition-all duration-300 hover:scale-105 z-40 select-none group"
         title="Đăng công thức"
       >
         <span className="text-2xl font-bold leading-none">+</span>
-      </Link>
+      </AuthLink>
     </div>
   );
 };
