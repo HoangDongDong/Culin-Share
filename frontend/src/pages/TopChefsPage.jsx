@@ -6,37 +6,36 @@ import { getRecipesRankingApi, getChefsRankingApi } from "../services/recipeApi"
 import { getImageUrl } from "../services/api";
 
 const TopChefsPage = () => {
-  const [mostSavedRecipes, setMostSavedRecipes] = useState([]);
-  const [mostFollowedChefs, setMostFollowedChefs] = useState([]);
+  const [recipeRankings, setRecipeRankings] = useState({});
+  const [chefs, setChefs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadErrors, setLoadErrors] = useState({});
   const [activeTab, setActiveTab] = useState("recipes"); // "recipes" (Công thức) or "chefs" (Đầu bếp)
+  const [recipeCriterion, setRecipeCriterion] = useState("mostSaved");
+  const [chefCriterion, setChefCriterion] = useState("followers_count");
+  const isRecipeTab = activeTab === "recipes";
 
   useEffect(() => {
     const fetchRanking = async () => {
-      try {
-        setIsLoading(true);
-        const [recipesData, chefsData] = await Promise.all([
-          getRecipesRankingApi(),
-          getChefsRankingApi()
-        ]);
-        setMostSavedRecipes(recipesData.mostSaved || []);
-        
-        // Sắp xếp đầu bếp theo lượt theo dõi (followers_count) giảm dần
-        const sortedChefs = [...(chefsData || [])].sort(
-          (a, b) => b.followers_count - a.followers_count
-        );
-        setMostFollowedChefs(sortedChefs);
-      } catch (err) {
-        console.error("Lỗi khi tải bảng xếp hạng:", err);
-      } finally {
-        setIsLoading(false);
-      }
+      const [recipesResult, chefsResult] = await Promise.allSettled([
+        getRecipesRankingApi(),
+        getChefsRankingApi(),
+      ]);
+      setRecipeRankings(recipesResult.value || {});
+      setChefs(chefsResult.value || []);
+      setLoadErrors({
+        recipes: recipesResult.status === "rejected",
+        chefs: chefsResult.status === "rejected",
+      });
+      setIsLoading(false);
     };
     fetchRanking();
   }, []);
 
   // Xác định dữ liệu hoạt động dựa trên Tab được chọn
-  const activeItems = activeTab === "recipes" ? mostSavedRecipes : mostFollowedChefs;
+  const activeItems = isRecipeTab
+    ? recipeRankings[recipeCriterion] || []
+    : [...chefs].sort((a, b) => b[chefCriterion] - a[chefCriterion] || a.id - b.id);
 
   // Chia làm Top 3 (Vinh danh Podium) và danh sách còn lại
   const top3 = activeItems.slice(0, 3);
@@ -82,7 +81,7 @@ const TopChefsPage = () => {
         </section>
 
         {/* Tab Switcher - Styled premiumly with sliding capsule look */}
-        <div className="flex justify-center mb-12">
+        <div className="flex justify-center mb-4">
           <div className="bg-surface-container-low p-1.5 rounded-full border border-outline-variant/30 flex gap-2 shadow-inner select-none">
             <button
               onClick={() => setActiveTab("recipes")}
@@ -93,7 +92,7 @@ const TopChefsPage = () => {
               }`}
             >
               <span className="material-symbols-outlined text-[18px]">restaurant_menu</span>
-              Công thức yêu thích nhất
+              Công thức
             </button>
             <button
               onClick={() => setActiveTab("chefs")}
@@ -104,16 +103,41 @@ const TopChefsPage = () => {
               }`}
             >
               <span className="material-symbols-outlined text-[18px]">person_check</span>
-              Đầu bếp nổi bật nhất
+              Đầu bếp nổi bật
             </button>
           </div>
         </div>
+
+        <label className="flex flex-wrap items-center justify-center gap-2 mb-10 text-sm font-bold">
+          Xếp hạng theo
+          <select
+            className="min-h-11 rounded-xl border border-outline-variant bg-surface-container-lowest px-3 text-on-surface"
+            value={isRecipeTab ? recipeCriterion : chefCriterion}
+            onChange={(event) => (isRecipeTab ? setRecipeCriterion : setChefCriterion)(event.target.value)}
+          >
+            {isRecipeTab ? (
+              <>
+                <option value="mostSaved">Lượt yêu thích</option>
+                <option value="mostReviewed">Lượt đánh giá</option>
+              </>
+            ) : (
+              <>
+                <option value="likes_count">Lượt yêu thích</option>
+                <option value="followers_count">Lượt theo dõi</option>
+              </>
+            )}
+          </select>
+        </label>
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <span className="material-symbols-outlined text-4xl animate-spin text-primary">progress_activity</span>
             <p className="text-on-surface-variant font-bold">Đang tải bảng xếp hạng...</p>
           </div>
+        ) : loadErrors[activeTab] ? (
+          <p role="alert" className="text-center py-16 text-on-surface-variant">
+            Không tải được bảng xếp hạng. Vui lòng tải lại trang.
+          </p>
         ) : activeItems.length === 0 ? (
           <div className="text-center py-16 bg-surface-container-lowest rounded-3xl border border-outline-variant/20 shadow-sm">
             <span className="material-symbols-outlined text-5xl text-on-surface-variant/40">workspace_premium</span>
@@ -191,11 +215,11 @@ const TopChefsPage = () => {
                               <div className="flex justify-center items-center gap-0.5 min-h-[20px]">
                                 {renderStars(Number(item.avg_rating))}
                               </div>
-                              <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">Đánh giá</span>
+                              <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">Điểm trung bình</span>
                             </div>
                             <div>
                               <span className="block font-bold text-sm text-on-background">{item.reviews_count}</span>
-                              <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">Nhận xét</span>
+                              <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">Lượt đánh giá</span>
                             </div>
                           </div>
                         </>
@@ -293,7 +317,7 @@ const TopChefsPage = () => {
                             </div>
 
                             {/* Mid Info: Stats */}
-                            <div className="hidden sm:flex items-center gap-8 text-center select-none mr-4">
+                            <div className="flex items-center gap-4 lg:gap-8 text-center select-none sm:mr-4">
                               <div>
                                 <span className="block font-bold text-sm text-on-background">{item.likes_count}</span>
                                 <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">Yêu thích</span>
@@ -302,7 +326,11 @@ const TopChefsPage = () => {
                                 <div className="min-h-[20px] flex items-center justify-center">
                                   {renderStars(Number(item.avg_rating))}
                                 </div>
-                                <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">({Number(item.avg_rating).toFixed(1)}) Đánh giá</span>
+                                <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">Điểm trung bình</span>
+                              </div>
+                              <div>
+                                <span className="block font-bold text-sm text-on-background">{item.reviews_count}</span>
+                                <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">Lượt đánh giá</span>
                               </div>
                             </div>
 
@@ -338,7 +366,7 @@ const TopChefsPage = () => {
                             </div>
 
                             {/* Mid Info: Stats */}
-                            <div className="hidden sm:flex items-center gap-8 text-center select-none mr-4">
+                            <div className="flex items-center gap-4 lg:gap-8 text-center select-none sm:mr-4">
                               <div>
                                 <span className="block font-bold text-sm text-on-background">{item.likes_count}</span>
                                 <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">Yêu thích</span>

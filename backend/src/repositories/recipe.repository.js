@@ -290,8 +290,7 @@ class RecipeRepository {
     }
 
     async getRecipesRanking() {
-        // 1. Top recipes by likes/saves (Được yêu thích nhất)
-        const mostSavedSql = `
+        const rankingSql = (orderBy) => `
             SELECT r.id, r.title, r.slug, r.cover_image_url, r.description,
                    r.prep_time_minutes, r.cook_time_minutes, r.difficulty,
                    u.full_name AS author_name,
@@ -301,31 +300,16 @@ class RecipeRepository {
             FROM recipes r
             LEFT JOIN users u ON r.author_id = u.id
             WHERE r.status = 'published'
-            ORDER BY likes_count DESC, r.created_at DESC
+            ORDER BY ${orderBy}, r.created_at DESC, r.id DESC
             LIMIT 10
         `;
-        const [mostSaved] = await pool.query(mostSavedSql);
+        const [[mostSaved], [highestRated], [mostReviewed]] = await Promise.all([
+            pool.query(rankingSql('likes_count DESC')),
+            pool.query(rankingSql('avg_rating DESC, reviews_count DESC, likes_count DESC')),
+            pool.query(rankingSql('reviews_count DESC, avg_rating DESC, likes_count DESC')),
+        ]);
 
-        // 2. Top recipes by average rating (Được đánh giá cao nhất)
-        const highestRatedSql = `
-            SELECT r.id, r.title, r.slug, r.cover_image_url, r.description,
-                   r.prep_time_minutes, r.cook_time_minutes, r.difficulty,
-                   u.full_name AS author_name,
-                   (SELECT COUNT(*) FROM saved_recipes WHERE recipe_id = r.id) AS likes_count,
-                   (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE recipe_id = r.id) AS avg_rating,
-                   (SELECT COUNT(*) FROM reviews WHERE recipe_id = r.id) AS reviews_count
-            FROM recipes r
-            LEFT JOIN users u ON r.author_id = u.id
-            WHERE r.status = 'published'
-            ORDER BY avg_rating DESC, reviews_count DESC, likes_count DESC
-            LIMIT 10
-        `;
-        const [highestRated] = await pool.query(highestRatedSql);
-
-        return {
-            mostSaved,
-            highestRated
-        };
+        return { mostSaved, highestRated, mostReviewed };
     }
 }
 

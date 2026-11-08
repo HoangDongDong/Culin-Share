@@ -158,10 +158,11 @@ class UserRepository {
                 u.bio,
                 u.role,
                 (SELECT COUNT(*) FROM follows WHERE following_id = u.id) AS followers_count,
-                (SELECT COUNT(*) FROM recipes r JOIN saved_recipes sr ON r.id = sr.recipe_id WHERE r.author_id = u.id) AS likes_count,
-                (SELECT COUNT(*) FROM recipes WHERE author_id = u.id) AS recipes_count
+                (SELECT COUNT(*) FROM recipes r JOIN saved_recipes sr ON r.id = sr.recipe_id
+                 WHERE r.author_id = u.id AND r.status = 'published') AS likes_count,
+                (SELECT COUNT(*) FROM recipes WHERE author_id = u.id AND status = 'published') AS recipes_count
             FROM users u
-            WHERE u.id IN (SELECT DISTINCT author_id FROM recipes)
+            WHERE EXISTS (SELECT 1 FROM recipes WHERE author_id = u.id AND status = 'published')
         `;
         const [rows] = await pool.query(sql);
         return rows;
