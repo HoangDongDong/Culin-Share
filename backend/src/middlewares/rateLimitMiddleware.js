@@ -13,9 +13,27 @@ const rateLimit = require("express-rate-limit");
 
 /**
  * Rate limiter cho API Login
- * Đã bỏ giới hạn số lần/thời gian đăng nhập để không bị khóa và tiện kiểm thử
+ * Giới hạn: Tối đa 5 requests trong 15 phút
+ * Mục đích: Chống brute-force tấn công mật khẩu
  */
-const loginLimiter = (req, res, next) => next();
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 phút
+  max: 5, // Tối đa 5 requests
+  message: {
+    success: false,
+    message:
+      "Too Many Requests - Bạn đã đăng nhập quá nhiều lần. Vui lòng thử lại sau 15 phút.",
+  },
+  standardHeaders: true, // Trả về rate limit info trong `RateLimit-*` headers
+  legacyHeaders: false, // Tắt `X-RateLimit-*` headers cũ
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      message:
+        "Too Many Requests - Bạn đã đăng nhập quá nhiều lần. Vui lòng thử lại sau 15 phút.",
+    });
+  },
+});
 
 /**
  * Rate limiter cho API Register
