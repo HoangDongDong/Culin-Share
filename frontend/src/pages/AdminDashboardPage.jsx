@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
 import AdminHeader from "../components/AdminHeader";
 import api from "../services/api";
@@ -1486,11 +1486,11 @@ const AdminDashboardPage = () => {
               <p className="font-body-md text-body-md text-on-surface-variant">© {new Date().getFullYear()} CulinShare. Crafted for home chefs.</p>
             </div>
             <div className="flex gap-lg">
-              <a className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary underline transition-all" href="#">About</a>
-              <a className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary underline transition-all" href="#">Privacy</a>
-              <a className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary underline transition-all" href="#">Terms</a>
-              <a className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary underline transition-all" href="#">Help</a>
-              <a className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary underline transition-all" href="#">Contact</a>
+              <Link className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary underline transition-all" to="/about">About</Link>
+              <Link className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary underline transition-all" to="/privacy">Privacy</Link>
+              <Link className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary underline transition-all" to="/terms">Terms</Link>
+              <Link className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary underline transition-all" to="/contact#faq">Help</Link>
+              <Link className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary underline transition-all" to="/contact">Contact</Link>
             </div>
           </div>
         </footer>

@@ -4,6 +4,10 @@ import MobileNavigation from './components/MobileNavigation';
 import RouteSeo from './components/RouteSeo';
 import CategoryPage from './pages/CategoryPage';
 import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
+import CookiePolicyPage from './pages/CookiePolicyPage';
 import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -36,6 +40,15 @@ function App() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/about" element={<AboutPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+      <Route path="/lien-he" element={<ContactPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/dieu-khoan" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/quyen-rieng-tu" element={<PrivacyPage />} />
+      <Route path="/chinh-sach-bao-mat" element={<PrivacyPage />} />
+      <Route path="/cookies" element={<CookiePolicyPage />} />
+      <Route path="/chinh-sach-cookie" element={<CookiePolicyPage />} />
       <Route path="/search" element={<SearchPage />} />
       <Route path="/category/:slug" element={<CategoryPage />} />
       <Route path="/product/:id" element={<ProductDetailPage />} />

@@ -8,6 +8,10 @@ export const PUBLIC_PAGES = {
   '/search': {title: 'Khám phá công thức nấu ăn ngon | CulinShare', description: 'Tìm cách nấu món ngon cho gia đình. Lọc công thức theo nguyên liệu, thời gian, calo và độ khó trên Bếp Nhà Mình.'},
   '/community': {title: 'Cộng đồng chia sẻ công thức nấu ăn | CulinShare', description: 'Chia sẻ công thức nấu ăn, hỏi đáp và trao đổi bí quyết nấu ăn ngon mỗi ngày cùng cộng đồng CulinShare – Bếp Nhà Mình.'},
   '/chefs': {title: 'Đầu bếp và người chia sẻ công thức | CulinShare', description: 'Khám phá các tác giả và công thức nấu ăn từ cộng đồng yêu bếp CulinShare.'},
+  '/contact': {title: 'Liên hệ & Hỗ trợ | CulinShare – Bếp Nhà Mình', description: 'Liên hệ với đội ngũ CulinShare: hỗ trợ công thức, góp ý phát triển tính năng, hợp tác đầu bếp và giải đáp thắc mắc.'},
+  '/terms': {title: 'Điều khoản sử dụng dịch vụ | CulinShare – Bếp Nhà Mình', description: 'Quy chế sử dụng, điều khoản bản quyền công thức và tiêu chuẩn cộng đồng ẩm thực CulinShare.'},
+  '/privacy': {title: 'Chính sách quyền riêng tư & Bảo mật | CulinShare', description: 'Chính sách bảo mật dữ liệu, an toàn thông tin cá nhân và quyền người dùng tại CulinShare – Bếp Nhà Mình.'},
+  '/cookies': {title: 'Chính sách Cookie & Quản lý tùy chọn | CulinShare', description: 'Tìm hiểu cách CulinShare sử dụng cookie và quản lý các tùy chọn cookie trên trình duyệt của bạn.'},
 };
 export const PRIVATE_PAGES = ['/login','/register','/profile','/admin','/fridge','/saved-recipes','/submit-recipe','/forgot-password','/reset-password'];
 export const plainText = value => String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();

@@ -25,6 +25,7 @@ const aiRoutes = require('./src/routes/ai.routes');
 const adminRoutes = require('./src/routes/admin.routes');
 const notificationRoutes = require('./src/routes/notification.routes');
 const communityRoutes = require('./src/routes/community.routes');
+const contactRoutes = require('./src/routes/contact.routes');
 
 const pool = require('./src/config/database');
 const { runMigrations } = require('./database/runner');
@@ -100,6 +101,7 @@ app.use('/api', adminRoutes);
 // Notification routes
 app.use('/api', notificationRoutes);
 app.use('/api', communityRoutes);
+app.use('/api', contactRoutes);
 app.use('/api', require('./src/routes/home.routes'));
 app.use('/api', require('./src/routes/seo.routes'));
 

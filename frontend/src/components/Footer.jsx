@@ -211,29 +211,29 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2.5 text-xs sm:text-sm">
               <li>
-                <a href="#" className="text-stone-600 hover:text-primary transition-colors block">
+                <Link to="/about" className="text-stone-600 hover:text-primary transition-colors block">
                   Hướng dẫn sử dụng
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-stone-600 hover:text-primary transition-colors block">
+                <Link to="/contact#faq" className="text-stone-600 hover:text-primary transition-colors block">
                   Câu hỏi thường gặp
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-stone-600 hover:text-primary transition-colors block">
+                <Link to="/contact" className="text-stone-600 hover:text-primary transition-colors block">
                   Liên hệ
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-stone-600 hover:text-primary transition-colors block">
+                <Link to="/contact?subject=feedback" className="text-stone-600 hover:text-primary transition-colors block">
                   Góp ý
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-stone-600 hover:text-primary transition-colors block">
+                <Link to="/contact?subject=report" className="text-stone-600 hover:text-primary transition-colors block">
                   Báo cáo vi phạm
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -305,17 +305,17 @@ const Footer = () => {
 
           {/* Legal / Policy Links */}
           <div className="flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm">
-            <a href="#" className="hover:text-primary transition-colors">
+            <Link to="/terms" className="hover:text-primary transition-colors">
               Điều khoản sử dụng
-            </a>
+            </Link>
             <span className="text-stone-300">|</span>
-            <a href="#" className="hover:text-primary transition-colors">
+            <Link to="/privacy" className="hover:text-primary transition-colors">
               Chính sách bảo mật
-            </a>
+            </Link>
             <span className="text-stone-300">|</span>
-            <a href="#" className="hover:text-primary transition-colors">
+            <Link to="/cookies" className="hover:text-primary transition-colors">
               Chính sách cookie
-            </a>
+            </Link>
           </div>
 
           {/* Language Selector Pill */}
