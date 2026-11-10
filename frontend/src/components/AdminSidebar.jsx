@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 
-const AdminSidebar = ({ activeTab, setActiveTab }) => {
+const AdminSidebar = ({ activeTab, setActiveTab, pendingReportsCount = 0 }) => {
   const { user } = useSelector((state) => state.auth);
 
   return (
@@ -58,6 +58,21 @@ const AdminSidebar = ({ activeTab, setActiveTab }) => {
         >
           <span className="material-symbols-outlined">fact_check</span>
           <span className="font-label-md text-label-md">Duyệt bài</span>
+        </a>
+        <a 
+          onClick={(e) => { e.preventDefault(); setActiveTab('reports'); }}
+          className={`flex items-center justify-between p-sm rounded-lg transition-all active:scale-95 cursor-pointer ${activeTab === 'reports' ? 'bg-secondary-container text-on-secondary-container font-bold shadow-sm' : 'text-on-surface-variant hover:bg-surface-variant'}`} 
+          href="#"
+        >
+          <div className="flex items-center gap-sm">
+            <span className="material-symbols-outlined">flag</span>
+            <span className="font-label-md text-label-md">Báo cáo cộng đồng</span>
+          </div>
+          {pendingReportsCount > 0 && (
+            <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-error text-on-error">
+              {pendingReportsCount}
+            </span>
+          )}
         </a>
         <a 
           onClick={(e) => { e.preventDefault(); setActiveTab('categories'); }}

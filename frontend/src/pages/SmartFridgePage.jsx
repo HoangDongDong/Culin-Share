@@ -1,5 +1,5 @@
 import { useRequireLogin } from "../components/AuthPrompt";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -38,16 +38,88 @@ const SmartFridgePage = () => {
   });
   const [inputValue, setInputValue] = useState("");
   const [inputQuantity, setInputQuantity] = useState("");
-  const [peopleCount, setPeopleCount] = useState(draft?.peopleCount ?? 2);
-  const [dishDistribution, setDishDistribution] = useState(draft?.dishDistribution ?? { easy: 1, medium: 1, hard: 1 });
-  const [cookingSpeed, setCookingSpeed] = useState(draft?.cookingSpeed ?? "bình thường");
+  const [peopleCount, setPeopleCount] = useState(() => {
+    if (draft?.peopleCount) return draft.peopleCount;
+    const saved = localStorage.getItem("fridgePeopleCount");
+    return saved ? Number(saved) : 2;
+  });
+  const [dishDistribution, setDishDistribution] = useState(() => {
+    if (draft?.dishDistribution) return draft.dishDistribution;
+    try {
+      const saved = JSON.parse(localStorage.getItem("fridgeDishDistribution"));
+      if (saved && typeof saved === "object") return saved;
+    } catch {}
+    return { easy: 1, medium: 1, hard: 1 };
+  });
+  const [cookingSpeed, setCookingSpeed] = useState(() => {
+    if (draft?.cookingSpeed) return draft.cookingSpeed;
+    return localStorage.getItem("fridgeCookingSpeed") || "bình thường";
+  });
   const [loading, setLoading] = useState(false);
   const [pdfBusy,setPdfBusy]=useState(false),[pdfError,setPdfError]=useState('');
-  const [suggestions, setSuggestions] = useState([]);
-  const [globalShoppingList, setGlobalShoppingList] = useState([]);
+  const [suggestions, setSuggestions] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("fridgeSuggestions") || "[]");
+      return Array.isArray(saved) ? saved : [];
+    } catch {
+      return [];
+    }
+  });
+  const [globalShoppingList, setGlobalShoppingList] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("fridgeShoppingList") || "[]");
+      return Array.isArray(saved) ? saved : [];
+    } catch {
+      return [];
+    }
+  });
   const [activeRecipe, setActiveRecipe] = useState(null);
   const [error, setError] = useState("");
   const [modalCheckedIngredients, setModalCheckedIngredients] = useState([]);
+
+  // Tự động lưu cấu hình bữa ăn vào localStorage
+  useEffect(() => {
+    localStorage.setItem("fridgePeopleCount", String(peopleCount));
+  }, [peopleCount]);
+
+  useEffect(() => {
+    localStorage.setItem("fridgeDishDistribution", JSON.stringify(dishDistribution));
+  }, [dishDistribution]);
+
+  useEffect(() => {
+    localStorage.setItem("fridgeCookingSpeed", cookingSpeed);
+  }, [cookingSpeed]);
+
+  // Hỗ trợ nút Back của trình duyệt khi modal hướng dẫn nấu đang mở
+  const handleOpenRecipeModal = (recipe) => {
+    setModalCheckedIngredients([]);
+    setActiveRecipe(recipe);
+    window.history.pushState({ fridgeModal: true }, "");
+  };
+
+  const handleCloseRecipeModal = () => {
+    if (window.history.state?.fridgeModal) {
+      window.history.back();
+    } else {
+      setActiveRecipe(null);
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      // Khi nhấn nút Back trên trình duyệt trong lúc modal mở, chỉ đóng modal
+      setActiveRecipe(null);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const clearSuggestions = () => {
+    setSuggestions([]);
+    setGlobalShoppingList([]);
+    localStorage.removeItem("fridgeSuggestions");
+    localStorage.removeItem("fridgeShoppingList");
+  };
 
   const inferUnit = (name, qty) => {
     const n = (name || '').toLowerCase();
@@ -144,8 +216,7 @@ const SmartFridgePage = () => {
   const handleClearFridge = () => {
     setFridgeItems([]);
     localStorage.removeItem("fridgeItems");
-    setSuggestions([]);
-    setGlobalShoppingList([]);
+    clearSuggestions();
     setActiveRecipe(null);
   };
 
@@ -212,14 +283,24 @@ const SmartFridgePage = () => {
         ingredients: fridgeItems, peopleCount, complexity: complexityStr, cookingSpeed, dishCount: totalDishes,
       });
       if (response.data.success) {
+        let loadedSuggestions = [];
+        let loadedShoppingList = [];
         if (Array.isArray(response.data.data)) {
             // Old format fallback
-            setSuggestions(response.data.data);
-            setGlobalShoppingList([]);
+            loadedSuggestions = response.data.data;
+            loadedShoppingList = [];
         } else {
             // New format
-            setSuggestions(response.data.data.recipes || []);
-            setGlobalShoppingList(response.data.data.shoppingList || []);
+            loadedSuggestions = response.data.data.recipes || [];
+            loadedShoppingList = response.data.data.shoppingList || [];
+        }
+        setSuggestions(loadedSuggestions);
+        setGlobalShoppingList(loadedShoppingList);
+        try {
+          localStorage.setItem("fridgeSuggestions", JSON.stringify(loadedSuggestions));
+          localStorage.setItem("fridgeShoppingList", JSON.stringify(loadedShoppingList));
+        } catch (e) {
+          console.warn("Lỗi lưu gợi ý vào localStorage:", e);
         }
         setTimeout(() => {
           const el = document.getElementById("ai-results");
@@ -507,7 +588,7 @@ const SmartFridgePage = () => {
                     <span className="text-primary"> · Ưu tiên công thức CulinShare</span>
                   )}
                 </span>
-                <button onClick={() => { setSuggestions([]); setGlobalShoppingList([]); }} style={{ fontSize: 12, fontWeight: 700, color: "#665e49", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                <button onClick={clearSuggestions} style={{ fontSize: 12, fontWeight: 700, color: "#665e49", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 14 }}>refresh</span> Xóa
                 </button>
               </div>
@@ -649,10 +730,7 @@ const SmartFridgePage = () => {
                       </Link>
                     ) : (
                       <button
-                        onClick={() => {
-                          setModalCheckedIngredients([]);
-                          setActiveRecipe(recipe);
-                        }}
+                        onClick={() => handleOpenRecipeModal(recipe)}
                         style={{ width: "100%", padding: "11px 0", background: "#f5f3f3", border: "1px solid rgba(225,191,183,0.3)", borderRadius: 12, color: "#ab2e10", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s" }}
                         onMouseEnter={(e) => { e.currentTarget.style.background = "#ab2e10"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "#ab2e10"; }}
                         onMouseLeave={(e) => { e.currentTarget.style.background = "#f5f3f3"; e.currentTarget.style.color = "#ab2e10"; e.currentTarget.style.borderColor = "rgba(225,191,183,0.3)"; }}
@@ -689,8 +767,14 @@ const SmartFridgePage = () => {
 
       {/* ═══ MODAL CHI TIẾT CÔNG THỨC (FORMAT NHƯ RECIPEDETAILPAGE) ═══ */}
       {activeRecipe && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)", backdropFilter: "blur(4px)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: "#fbf9f8", borderRadius: 20, border: "1px solid rgba(225,191,183,0.2)", maxWidth: 680, width: "100%", maxHeight: "90vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 25px 50px -12px rgba(15,23,42,0.4)" }}>
+        <div 
+          onClick={handleCloseRecipeModal}
+          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)", backdropFilter: "blur(4px)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: "#fbf9f8", borderRadius: 20, border: "1px solid rgba(225,191,183,0.2)", maxWidth: 680, width: "100%", maxHeight: "90vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 25px 50px -12px rgba(15,23,42,0.4)" }}
+          >
 
             {/* Header */}
             <div style={{ background: "#f5f3f3", borderBottom: "1px solid rgba(225,191,183,0.2)", padding: "18px 24px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -709,7 +793,7 @@ const SmartFridgePage = () => {
                 <p className="text-xs text-on-surface-variant mt-1">{activeRecipe.description}</p>
               </div>
               <button
-                onClick={() => setActiveRecipe(null)}
+                onClick={handleCloseRecipeModal}
                 className="w-8 h-8 rounded-full bg-white border border-outline-variant/30 flex items-center justify-center text-secondary hover:text-primary transition-colors flex-shrink-0 ml-4 shadow-sm"
               >
                 <span className="material-symbols-outlined text-lg">close</span>
@@ -857,7 +941,7 @@ const SmartFridgePage = () => {
             <div style={{ background: "#f5f3f3", borderTop: "1px solid rgba(225,191,183,0.15)", padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <p style={{ fontSize: 11, color: "rgba(102,94,73,0.5)" }}>Công thức gợi ý theo tủ lạnh thông minh CulinShare</p>
               <button
-                onClick={() => setActiveRecipe(null)}
+                onClick={handleCloseRecipeModal}
                 className="px-6 py-2.5 bg-primary text-white font-bold text-sm rounded-xl hover:bg-primary/90 transition-all shadow-md active:scale-95 flex items-center gap-2"
               >
                 <span>Bắt đầu nấu ngay</span> 🍳

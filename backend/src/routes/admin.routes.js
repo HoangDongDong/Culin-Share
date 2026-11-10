@@ -90,4 +90,28 @@ router.delete(
     AdminController.deleteCategory
 );
 
+// ========================
+// COMMUNITY REPORTS MODERATION
+// ========================
+router.get(
+    '/admin/reports',
+    verifyToken,
+    authorize('admin'),
+    AdminController.getReports
+);
+
+router.put(
+    '/admin/reports/:id/status',
+    verifyToken,
+    authorize('admin'),
+    AdminController.updateReportStatus
+);
+
+router.put(
+    '/admin/reports/:id/action',
+    verifyToken,
+    authorize('admin'),
+    AdminController.handleReportAction
+);
+
 module.exports = router;

@@ -51,6 +51,7 @@ class AdminController {
             const [[{ totalUsers }]] = await pool.query('SELECT COUNT(*) AS totalUsers FROM users');
             const [[{ totalRecipes }]] = await pool.query('SELECT COUNT(*) AS totalRecipes FROM recipes');
             const [[{ totalReviews }]] = await pool.query('SELECT COUNT(*) AS totalReviews FROM reviews');
+            const reportStats = await adminRepository.getReportStats();
 
             return res.status(200).json({
                 success: true,
@@ -60,10 +61,12 @@ class AdminController {
                     difficultyStats,
                     aiLogsStats,
                     preferenceStats,
+                    reportStats,
                     summary: {
                         totalUsers,
                         totalRecipes,
-                        totalReviews
+                        totalReviews,
+                        pendingReports: reportStats.pending
                     }
                 }
             });
@@ -228,6 +231,67 @@ class AdminController {
             return res.status(200).json({
                 success: true,
                 message: 'Xóa danh mục thành công'
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // ========================
+    // COMMUNITY REPORTS MODERATION
+    // ========================
+    async getReports(req, res, next) {
+        try {
+            const { status } = req.query;
+            const reports = await adminRepository.getCommunityReports(status);
+            const stats = await adminRepository.getReportStats();
+            return res.status(200).json({
+                success: true,
+                data: {
+                    reports,
+                    stats
+                }
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async updateReportStatus(req, res, next) {
+        try {
+            const { id } = req.params;
+            const { status } = req.body;
+            if (!['pending', 'reviewed', 'dismissed'].includes(status)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Trạng thái báo cáo không hợp lệ'
+                });
+            }
+            await adminRepository.updateReportStatus(id, status, req.user.id);
+            return res.status(200).json({
+                success: true,
+                message: 'Cập nhật trạng thái báo cáo thành công'
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async handleReportAction(req, res, next) {
+        try {
+            const { id } = req.params;
+            const { action } = req.body;
+            const validActions = ['hide_content', 'delete_content', 'restore_content', 'dismiss_report', 'reopen_report'];
+            if (!validActions.includes(action)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Hành động không hợp lệ'
+                });
+            }
+            await adminRepository.handleReportAction(id, action, req.user.id);
+            return res.status(200).json({
+                success: true,
+                message: 'Xử lý báo cáo thành công'
             });
         } catch (error) {
             next(error);

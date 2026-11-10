@@ -50,7 +50,7 @@ function App() {
       <Route path="/community/posts/:id" element={<CommunityPage />} />
       <Route path="/submit-recipe" element={<ProtectedPage><SubmitRecipePage /></ProtectedPage>} />
       <Route path="/saved-recipes" element={<ProtectedPage><SavedRecipesPage /></ProtectedPage>} />
-      <Route path="/admin" element={<ProtectedPage><AdminRoute><AdminDashboardPage /></AdminRoute></ProtectedPage>} />
+      <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/fridge" element={<SmartFridgePage />} />

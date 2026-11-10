@@ -345,6 +345,33 @@ export const deleteAdminCategoryApi = async (id) => {
   }
 };
 
+export const getAdminReportsApi = async (status) => {
+  try {
+    const response = await api.get('/api/admin/reports', { params: { status } });
+    return response.data.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const updateAdminReportStatusApi = async (id, status) => {
+  try {
+    const response = await api.put(`/api/admin/reports/${id}/status`, { status });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const handleAdminReportActionApi = async (id, action) => {
+  try {
+    const response = await api.put(`/api/admin/reports/${id}/action`, { action });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
 export const getRecipesRankingApi = async () => {
   try {
     const response = await api.get("/api/recipes/ranking");
