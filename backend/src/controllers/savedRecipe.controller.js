@@ -4,10 +4,12 @@ class SavedRecipeController {
     async getSavedRecipes(req, res, next) {
         try {
             const userId = req.user.id;
-            const recipes = await savedRecipeService.getSavedRecipes(userId);
+            const { collection } = req.query;
+            const { recipes, counts } = await savedRecipeService.getSavedRecipes(userId, collection);
             return res.status(200).json({
                 success: true,
-                data: recipes
+                data: recipes,
+                counts: counts
             });
         } catch (error) {
             next(error);
@@ -18,10 +20,33 @@ class SavedRecipeController {
         try {
             const { id: recipeId } = req.params;
             const userId = req.user.id;
-            const result = await savedRecipeService.saveRecipe(userId, recipeId);
+            const { collection = 'want_to_try' } = req.body || {};
+            const result = await savedRecipeService.saveRecipe(userId, recipeId, collection);
             return res.status(200).json({
                 success: true,
                 message: 'Lưu công thức thành công',
+                data: result
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async updateCollection(req, res, next) {
+        try {
+            const { id: recipeId } = req.params;
+            const userId = req.user.id;
+            const { collection } = req.body || {};
+            if (!collection) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Vui lòng chọn bộ sưu tập hợp lệ'
+                });
+            }
+            const result = await savedRecipeService.updateCollection(userId, recipeId, collection);
+            return res.status(200).json({
+                success: true,
+                message: 'Cập nhật bộ sưu tập thành công',
                 data: result
             });
         } catch (error) {

@@ -11,9 +11,11 @@ import {applySeo, recipeSeo, routeSeo} from "../services/seo.mjs";
 import {
   getRecipeByIdApi,
   submitReviewApi,
+  deleteReviewApi,
   submitCommentApi,
   saveRecipeApi,
   unsaveRecipeApi,
+  updateSavedCollectionApi,
   checkSavedStatusApi,
   followUserApi,
   unfollowUserApi,
@@ -33,8 +35,14 @@ const RecipeDetailPage = () => {
   const [parentId, setParentId] = useState(null);
   const [isFollowed, setIsFollowed] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [savedCollection, setSavedCollection] = useState("want_to_try");
+  const [isSaveDropdownOpen, setIsSaveDropdownOpen] = useState(false);
   const [userRating, setUserRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
+  const [reviewTip, setReviewTip] = useState("");
+  const [cooksnapFile, setCooksnapFile] = useState(null);
+  const [cooksnapPreview, setCooksnapPreview] = useState("");
+  const [activePreviewImage, setActivePreviewImage] = useState(null);
   const [submittingReview, setSubmittingReview] = useState(false);
   const { user } = useSelector((state) => state.auth);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -96,6 +104,9 @@ const RecipeDetailPage = () => {
       if (token) {
         const savedRes = await checkSavedStatusApi(id);
         setIsSaved(savedRes.saved);
+        if (savedRes.collection) {
+          setSavedCollection(savedRes.collection);
+        }
 
         if (data.author_id) {
           const followRes = await checkFollowStatusApi(data.author_id);
@@ -168,36 +179,84 @@ const RecipeDetailPage = () => {
     }
   };
 
-  const handleSaveToggle = async () => {
+  const handleSaveToCollection = async (targetCol) => {
     if (!requireLogin({ message: "Đăng nhập để lưu công thức." })) return;
     try {
-      if (isSaved) {
-        await unsaveRecipeApi(id);
-        setIsSaved(false);
-      } else {
-        await saveRecipeApi(id);
-        setIsSaved(true);
-      }
+      await saveRecipeApi(id, targetCol);
+      setIsSaved(true);
+      setSavedCollection(targetCol);
+      setIsSaveDropdownOpen(false);
     } catch (err) {
-      alert(err.message || "Không thể thực hiện tác vụ");
+      alert(err.message || "Không thể lưu vào bộ sưu tập");
+    }
+  };
+
+  const handleUnsaveDirectly = async () => {
+    try {
+      await unsaveRecipeApi(id);
+      setIsSaved(false);
+      setIsSaveDropdownOpen(false);
+    } catch (err) {
+      alert(err.message || "Không thể hủy lưu");
+    }
+  };
+
+  const handleCooksnapFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Dung lượng ảnh tối đa là 5MB!");
+      return;
+    }
+    setCooksnapFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setCooksnapPreview(previewUrl);
+  };
+
+  const handleRemoveCooksnapFile = () => {
+    setCooksnapFile(null);
+    if (cooksnapPreview) {
+      URL.revokeObjectURL(cooksnapPreview);
+      setCooksnapPreview("");
     }
   };
 
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
-    if (!requireLogin({ message: "Đăng nhập để đánh giá món ăn." })) return;
+    if (!requireLogin({ message: "Đăng nhập để chia sẻ ảnh thành phẩm và đánh giá." })) return;
     try {
       setSubmittingReview(true);
-      await submitReviewApi(id, userRating, reviewComment);
-      alert("Đăng đánh giá thành công!");
+      await submitReviewApi(id, {
+        rating: userRating,
+        comment: reviewComment.trim(),
+        tip: reviewTip.trim() || undefined,
+        imageFile: cooksnapFile
+      });
+      alert(cooksnapFile ? "Đã đăng ảnh thành phẩm và đánh giá thành công!" : "Đăng đánh giá thành công!");
       setReviewComment("");
-      // Reload details to get new average rating
+      setReviewTip("");
+      handleRemoveCooksnapFile();
+      // Auto save as cooked
+      setIsSaved(true);
+      setSavedCollection("cooked");
+      // Reload details to get new reviews and rating
       const updatedData = await getRecipeByIdApi(id);
       setRecipe(updatedData);
     } catch (err) {
       alert(err.message || "Không thể gửi đánh giá");
     } finally {
       setSubmittingReview(false);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa đánh giá này?")) return;
+    try {
+      await deleteReviewApi(reviewId);
+      const updatedData = await getRecipeByIdApi(id);
+      setRecipe(updatedData);
+    } catch (err) {
+      alert(err.message || "Không thể xóa đánh giá");
     }
   };
 
@@ -227,6 +286,8 @@ const RecipeDetailPage = () => {
       </div>
     );
   }
+
+  const cooksnaps = recipe?.reviews?.filter(r => !!r.image_url) || [];
 
   return (
     <div className="bg-surface text-on-surface font-body-md min-h-screen flex flex-col">
@@ -292,7 +353,9 @@ const RecipeDetailPage = () => {
                   {recipe.ingredients && recipe.ingredients.map((ing, idx) => {
                     const isChecked = checkedIngredients.includes(idx);
                     const displayName = `${ing.quantity || ""} ${ing.unit || ""} ${ing.name}`.trim();
-                    return (
+                    const cooksnaps = recipe?.reviews?.filter(r => !!r.image_url) || [];
+
+  return (
                       <label key={ing.id || idx} className="flex items-center gap-3 cursor-pointer group">
                         <input
                           type="checkbox"
@@ -355,42 +418,318 @@ const RecipeDetailPage = () => {
               </div>
             </section>
 
-            {/* Review and Rating Section */}
-            <section>
-              <div className="flex items-center gap-3 mb-md select-none">
-                <span className="material-symbols-outlined text-primary text-2xl font-bold">star</span>
-                <h2 className="font-headline-md text-headline-md font-bold">Đánh giá & Nhận xét</h2>
-              </div>
-              <div className="bg-surface-container-lowest p-md rounded-xl recipe-shadow border border-outline-variant/10 mb-md">
-                <h3 className="font-label-md text-primary mb-3 uppercase font-bold">Gửi đánh giá của bạn</h3>
-                <div className="flex items-center gap-xs mb-md">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={() => setUserRating(star)}
-                      className="material-symbols-outlined text-yellow-500 text-3xl focus:outline-none"
-                      style={{ fontVariationSettings: userRating >= star ? "'FILL' 1" : "'FILL' 0" }}
-                    >
-                      star
-                    </button>
-                  ))}
+            {/* Review and Cooksnap Section */}
+            <section id="cooksnaps" className="space-y-md">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 select-none">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary text-2xl font-bold">photo_camera</span>
+                  <h2 className="font-headline-md text-headline-md font-bold">
+                    Ảnh thành phẩm & Đánh giá ({recipe.reviews?.length || 0})
+                  </h2>
                 </div>
-                <form onSubmit={handleReviewSubmit} className="flex gap-4">
-                  <input
-                    type="text"
-                    placeholder="Chia sẻ nhận xét của bạn về công thức..."
-                    value={reviewComment}
-                    onChange={(e) => setReviewComment(e.target.value)}
-                    className="flex-grow bg-surface border border-outline-variant/30 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-on-surface"
-                  />
-                  <button
-                    type="submit"
-                    disabled={submittingReview}
-                    className="bg-primary text-white px-6 py-2 rounded-full font-label-md font-bold hover:bg-primary/90 transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    Đánh giá
-                  </button>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center text-yellow-500">
+                    <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                    <span className="font-bold text-sm text-on-surface ml-1">{recipe.averageRating ? recipe.averageRating.toFixed(1) : "5.0"}</span>
+                  </div>
+                  <span className="text-xs text-on-surface-variant">
+                    ({recipe.reviewCount || recipe.reviews?.length || 0} đánh giá • {cooksnaps.length} ảnh thực tế)
+                  </span>
+                </div>
+              </div>
+
+              {/* Cooksnaps Real Photos Showcase Gallery */}
+              {cooksnaps.length > 0 && (
+                <div className="bg-surface-container-lowest p-md rounded-2xl recipe-shadow border border-outline-variant/15">
+                  <h3 className="font-label-md text-primary uppercase font-bold text-xs flex items-center gap-1.5 mb-3">
+                    <span className="material-symbols-outlined text-[18px]">verified</span>
+                    Thành phẩm thực tế từ người làm theo ({cooksnaps.length})
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {cooksnaps.map((rev) => (
+                      <div
+                        key={rev.id}
+                        onClick={() => setActivePreviewImage(getImageUrl(rev.image_url))}
+                        className="group relative aspect-square rounded-xl overflow-hidden cursor-pointer border border-outline-variant/20 shadow-xs hover:shadow-md transition-all"
+                      >
+                        <img
+                          src={getImageUrl(rev.image_url)}
+                          alt={`Thành phẩm của ${rev.full_name || rev.username}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-90 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2 text-white">
+                          <div className="flex items-center gap-1 text-[11px] font-bold">
+                            <img
+                              src={getImageUrl(rev.avatar_url) || "https://images.unsplash.com/photo-1534528741775-53994a69daeb"}
+                              alt={rev.full_name || rev.username}
+                              className="w-4 h-4 rounded-full object-cover border border-white/40"
+                            />
+                            <span className="truncate">{rev.full_name || rev.username}</span>
+                          </div>
+                          <div className="flex items-center text-yellow-400 text-[10px] mt-0.5">
+                            {[...Array(rev.rating || 5)].map((_, i) => (
+                              <span key={i} className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Form gửi đánh giá & ảnh thành phẩm */}
+              <div className="bg-surface-container-lowest p-md rounded-2xl recipe-shadow border border-outline-variant/15">
+                <div className="flex items-center justify-between mb-3 border-b border-outline-variant/10 pb-2">
+                  <div>
+                    <h3 className="font-headline-sm text-base text-on-surface font-bold">
+                      Chia sẻ thành phẩm của bạn
+                    </h3>
+                    <p className="text-xs text-on-surface-variant">
+                      Chụp ảnh đĩa thức ăn bạn đã nấu và gửi nhận xét để truyền cảm hứng cho cộng đồng.
+                    </p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleReviewSubmit} className="space-y-4">
+                  {/* Rating Stars */}
+                  <div>
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-1">
+                      Đánh giá độ ngon / độ dễ:
+                    </label>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setUserRating(star)}
+                          className="material-symbols-outlined text-yellow-500 text-3xl focus:outline-none hover:scale-110 active:scale-95 transition-transform"
+                          style={{ fontVariationSettings: userRating >= star ? "'FILL' 1" : "'FILL' 0" }}
+                          title={`${star} sao`}
+                        >
+                          star
+                        </button>
+                      ))}
+                      <span className="text-xs text-on-surface-variant font-bold ml-2">
+                        {userRating === 5 ? "Rất ngon & chuẩn vị!" : userRating === 4 ? "Ngon miệng" : userRating === 3 ? "Bình thường" : userRating === 2 ? "Cần cải thiện" : "Chưa hài lòng"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Cooksnap Image Upload */}
+                  <div>
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-1">
+                      Ảnh thành phẩm thực tế (Cooksnap):
+                    </label>
+
+                    {cooksnapPreview ? (
+                      <div className="relative inline-block rounded-xl overflow-hidden border border-outline-variant/30 shadow-xs">
+                        <img
+                          src={cooksnapPreview}
+                          alt="Xem trước ảnh thành phẩm"
+                          className="w-48 h-36 object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveCooksnapFile}
+                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center transition-all"
+                          title="Gỡ ảnh này"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                        <div className="absolute bottom-0 inset-x-0 bg-emerald-600/90 text-white text-[11px] font-bold text-center py-0.5">
+                          Đã chọn ảnh thành phẩm
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="border-2 border-dashed border-outline-variant/40 hover:border-primary/60 bg-surface hover:bg-primary/5 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-3 cursor-pointer transition-all">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                          <span className="material-symbols-outlined text-xl">add_a_photo</span>
+                        </div>
+                        <div className="text-center sm:text-left">
+                          <span className="text-sm font-bold text-primary block">
+                            Tải lên ảnh thành phẩm thực tế của bạn
+                          </span>
+                          <span className="text-xs text-on-surface-variant">
+                            PNG, JPG, WebP tối đa 5MB (chụp món ăn bạn vừa nấu xong)
+                          </span>
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleCooksnapFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Tip input (Optional) */}
+                  <div>
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-1">
+                      Mẹo nhỏ khi nấu (tùy chọn):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ví dụ: Rán lửa nhỏ 5 phút sẽ giòn hơn, giảm bớt 1 thìa đường..."
+                      value={reviewTip}
+                      onChange={(e) => setReviewTip(e.target.value)}
+                      className="w-full bg-surface border border-outline-variant/30 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface"
+                    />
+                  </div>
+
+                  {/* Comment text */}
+                  <div>
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-1">
+                      Nhận xét & cảm nhận:
+                    </label>
+                    <textarea
+                      rows="3"
+                      placeholder="Chia sẻ trải nghiệm của bạn khi nấu món này (hương vị, độ vừa miệng, độ khó)..."
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      className="w-full bg-surface border border-outline-variant/30 rounded-lg p-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-on-surface-variant/50 text-on-surface resize-none"
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={submittingReview}
+                      className="bg-primary text-white px-6 py-2.5 rounded-full font-label-md font-bold text-sm hover:bg-primary/95 transition-all active:scale-95 shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      {submittingReview ? (
+                        <>
+                          <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                          Đang gửi...
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-[18px]">
+                            {cooksnapFile ? "add_a_photo" : "send"}
+                          </span>
+                          {cooksnapFile ? "Đăng ảnh thành phẩm & Đánh giá" : "Gửi đánh giá"}
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </form>
+              </div>
+
+              {/* Reviews List */}
+              <div className="bg-surface-container-lowest p-md rounded-2xl recipe-shadow border border-outline-variant/15">
+                <h3 className="font-headline-sm text-base text-on-surface font-bold mb-md pb-2 border-b border-outline-variant/10">
+                  Phản hồi từ các đầu bếp gia đình ({recipe.reviews?.length || 0})
+                </h3>
+
+                {recipe.reviews && recipe.reviews.length > 0 ? (
+                  <div className="space-y-md divide-y divide-outline-variant/10">
+                    {recipe.reviews.map((rev) => (
+                      <div key={rev.id} className="pt-md first:pt-0 space-y-2">
+                        {/* Reviewer Meta */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <img
+                              src={getImageUrl(rev.avatar_url) || "https://images.unsplash.com/photo-1534528741775-53994a69daeb"}
+                              alt={rev.full_name || rev.username}
+                              className="w-9 h-9 rounded-full object-cover border border-outline-variant/20 shadow-xs"
+                            />
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-sm text-on-surface">
+                                  {rev.full_name || rev.username}
+                                </span>
+                                {rev.image_url && (
+                                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                                    Đã nấu thành công
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[11px] text-on-surface-variant">
+                                {new Date(rev.created_at).toLocaleDateString("vi-VN")}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Star Rating */}
+                          <div className="flex items-center text-yellow-500">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <span
+                                key={star}
+                                className="material-symbols-outlined text-[16px]"
+                                style={{ fontVariationSettings: (rev.rating || 5) >= star ? "'FILL' 1" : "'FILL' 0" }}
+                              >
+                                star
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Cooksnap Image if available */}
+                        {rev.image_url && (
+                          <div className="mt-2">
+                            <div
+                              onClick={() => setActivePreviewImage(getImageUrl(rev.image_url))}
+                              className="relative group rounded-xl overflow-hidden border border-outline-variant/20 max-w-sm cursor-pointer shadow-xs"
+                            >
+                              <img
+                                src={getImageUrl(rev.image_url)}
+                                alt={`Thành phẩm của ${rev.full_name || rev.username}`}
+                                className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                <span className="material-symbols-outlined text-2xl">zoom_in</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Tip block */}
+                        {rev.tip && (
+                          <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
+                            <span className="material-symbols-outlined text-amber-700 text-[18px] flex-shrink-0 mt-0.5">
+                              tips_and_updates
+                            </span>
+                            <div>
+                              <strong className="font-bold">Mẹo từ người nấu: </strong>
+                              <span>{rev.tip}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Comment text */}
+                        {rev.comment && (
+                          <p className="text-sm text-on-surface leading-relaxed whitespace-pre-wrap">
+                            {rev.comment}
+                          </p>
+                        )}
+
+                        {/* Delete action for author or admin */}
+                        {user && (user.id === rev.user_id || user.role === "admin") && (
+                          <div className="pt-1 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteReview(rev.id)}
+                              className="text-xs text-error hover:underline flex items-center gap-1 font-semibold"
+                            >
+                              <span className="material-symbols-outlined text-[14px]">delete</span>
+                              Xóa đánh giá
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-on-surface-variant">
+                    <span className="material-symbols-outlined text-4xl text-outline-variant mb-2">
+                      photo_camera
+                    </span>
+                    <p className="text-sm font-semibold">Chưa có ảnh thành phẩm hoặc đánh giá nào.</p>
+                    <p className="text-xs mt-1">Hãy là người đầu tiên nấu thử và chia sẻ ảnh đĩa thức ăn của bạn!</p>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -533,20 +872,112 @@ const RecipeDetailPage = () => {
                 </div>
               </div>
 
-              {/* Bookmark buttons */}
-              <button
-                onClick={handleSaveToggle}
-                className={`w-full mt-6 py-3 rounded-full font-label-md font-bold flex items-center justify-center gap-2 border transition-all active:scale-95 shadow-sm ${
-                  isSaved
-                    ? "bg-primary-container text-primary border-primary"
-                    : "bg-primary text-white border-primary hover:bg-primary/90"
-                }`}
-              >
-                <span className="material-symbols-outlined text-sm font-bold">
-                  {isSaved ? "bookmark_added" : "bookmark"}
-                </span>
-                {isSaved ? "Đã lưu công thức" : "Lưu công thức"}
-              </button>
+              {/* Bookmark & Collection selector */}
+              <div className="relative mt-6">
+                <button
+                  type="button"
+                  onClick={() => setIsSaveDropdownOpen(!isSaveDropdownOpen)}
+                  className={`w-full py-3 rounded-full font-label-md font-bold flex items-center justify-center gap-2 border transition-all active:scale-95 shadow-sm ${
+                    isSaved
+                      ? "bg-primary-container text-primary border-primary"
+                      : "bg-primary text-white border-primary hover:bg-primary/90"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-sm font-bold">
+                    {isSaved ? "bookmark_added" : "bookmark"}
+                  </span>
+                  <span>
+                    {isSaved
+                      ? (savedCollection === "cooked"
+                          ? "Đã lưu: Món đã nấu"
+                          : savedCollection === "quick_dinner"
+                          ? "Đã lưu: Bữa tối nhanh"
+                          : "Đã lưu: Món muốn thử")
+                      : "Lưu vào Bộ sưu tập"}
+                  </span>
+                  <span className="material-symbols-outlined text-sm">
+                    {isSaveDropdownOpen ? "expand_less" : "expand_more"}
+                  </span>
+                </button>
+
+                {/* Dropdown Menu */}
+                {isSaveDropdownOpen && (
+                  <div className="absolute right-0 left-0 mt-2 bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/20 p-2 z-50 animate-in fade-in duration-200">
+                    <p className="px-3 py-1.5 text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+                      Chọn bộ sưu tập
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleSaveToCollection("want_to_try")}
+                      className={`w-full px-3 py-2.5 rounded-xl text-left text-sm flex items-center justify-between transition-colors ${
+                        isSaved && savedCollection === "want_to_try" ? "bg-amber-50 text-amber-900 font-bold" : "hover:bg-surface-variant text-on-surface"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-amber-600 text-[20px]">bookmark</span>
+                        <div>
+                          <p className="font-bold text-xs">Món muốn thử</p>
+                          <p className="text-[11px] text-on-surface-variant">Dự định nấu khi rảnh</p>
+                        </div>
+                      </div>
+                      {isSaved && savedCollection === "want_to_try" && (
+                        <span className="material-symbols-outlined text-amber-600 text-sm">check</span>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSaveToCollection("quick_dinner")}
+                      className={`w-full px-3 py-2.5 rounded-xl text-left text-sm flex items-center justify-between transition-colors ${
+                        isSaved && savedCollection === "quick_dinner" ? "bg-sky-50 text-sky-900 font-bold" : "hover:bg-surface-variant text-on-surface"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-sky-600 text-[20px]">bolt</span>
+                        <div>
+                          <p className="font-bold text-xs">Bữa tối nhanh</p>
+                          <p className="text-[11px] text-on-surface-variant">Món nhanh cho ngày bận</p>
+                        </div>
+                      </div>
+                      {isSaved && savedCollection === "quick_dinner" && (
+                        <span className="material-symbols-outlined text-sky-600 text-sm">check</span>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSaveToCollection("cooked")}
+                      className={`w-full px-3 py-2.5 rounded-xl text-left text-sm flex items-center justify-between transition-colors ${
+                        isSaved && savedCollection === "cooked" ? "bg-emerald-50 text-emerald-900 font-bold" : "hover:bg-surface-variant text-on-surface"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-emerald-600 text-[20px]">check_circle</span>
+                        <div>
+                          <p className="font-bold text-xs">Món đã nấu</p>
+                          <p className="text-[11px] text-on-surface-variant">Đã trổ tài thành công</p>
+                        </div>
+                      </div>
+                      {isSaved && savedCollection === "cooked" && (
+                        <span className="material-symbols-outlined text-emerald-600 text-sm">check</span>
+                      )}
+                    </button>
+
+                    {isSaved && (
+                      <div className="pt-1 mt-1 border-t border-outline-variant/10">
+                        <button
+                          type="button"
+                          onClick={handleUnsaveDirectly}
+                          className="w-full px-3 py-2 rounded-xl text-left text-xs font-bold text-error hover:bg-error-container/20 flex items-center gap-2"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">bookmark_remove</span>
+                          Bỏ lưu công thức
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Phân tích Dinh dưỡng & Calo Card */}
@@ -661,6 +1092,29 @@ onClick={() => { if (requireLogin({ from: "/profile" })) navigate("/profile"); }
         isOpen={isDeleteSuccessOpen}
         onClose={handleDeleteSuccessClose}
       />
+
+      {/* Lightbox Image Preview Modal */}
+      {activePreviewImage && (
+        <div
+          onClick={() => setActivePreviewImage(null)}
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+        >
+          <div className="relative max-w-4xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={activePreviewImage}
+              alt="Ảnh thành phẩm phóng to"
+              className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
+            />
+            <button
+              onClick={() => setActivePreviewImage(null)}
+              className="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/60 hover:bg-black text-white flex items-center justify-center shadow-lg transition-all"
+              title="Đóng"
+            >
+              <span className="material-symbols-outlined text-2xl">close</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

@@ -114,13 +114,47 @@ export const deleteRecipeApi = async (id) => {
   }
 };
 
-// Reviews
-export const submitReviewApi = async (recipeId, rating, comment) => {
+// Reviews & Cooksnaps
+export const submitReviewApi = async (recipeId, ratingOrData, commentMaybe) => {
   try {
-    const response = await api.post(`/api/recipes/${recipeId}/reviews`, {
-      rating,
-      comment,
-    });
+    let payload;
+    let headers;
+
+    if (typeof ratingOrData === 'object' && ratingOrData !== null) {
+      const { rating, comment, tip, imageFile, image_url } = ratingOrData;
+      if (imageFile) {
+        payload = new FormData();
+        payload.append('rating', rating);
+        if (comment) payload.append('comment', comment);
+        if (tip) payload.append('tip', tip);
+        payload.append('image', imageFile);
+        headers = { 'Content-Type': 'multipart/form-data' };
+      } else {
+        payload = { rating, comment, tip, image_url };
+      }
+    } else {
+      payload = { rating: ratingOrData, comment: commentMaybe };
+    }
+
+    const response = await api.post(`/api/recipes/${recipeId}/reviews`, payload, headers ? { headers } : undefined);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const getRecipeReviewsApi = async (recipeId) => {
+  try {
+    const response = await api.get(`/api/recipes/${recipeId}/reviews`);
+    return response.data.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const deleteReviewApi = async (reviewId) => {
+  try {
+    const response = await api.delete(`/api/reviews/${reviewId}`);
     return response.data;
   } catch (error) {
     throw error.response?.data || error.message;
@@ -149,20 +183,34 @@ export const deleteCommentApi = async (commentId) => {
   }
 };
 
-// Saved Recipes
-export const getSavedRecipesApi = async (userId) => {
+// Saved Recipes & Collections
+export const getSavedRecipesApi = async (collectionOrFilters = {}) => {
   try {
-    const url = userId ? `/api/me/saved-recipes?userId=${userId}` : "/api/me/saved-recipes";
-    const response = await api.get(url);
+    const params = typeof collectionOrFilters === 'string'
+      ? { collection: collectionOrFilters }
+      : collectionOrFilters;
+    const response = await api.get('/api/me/saved-recipes', { params });
+    // Trả về recipes mảng đồng thời gắn thuộc tính counts
+    const recipes = response.data.data || [];
+    recipes.counts = response.data.counts || { total: recipes.length, want_to_try: 0, quick_dinner: 0, cooked: 0 };
+    return recipes;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const saveRecipeApi = async (recipeId, collection = 'want_to_try') => {
+  try {
+    const response = await api.post(`/api/recipes/${recipeId}/save`, { collection });
     return response.data.data;
   } catch (error) {
     throw error.response?.data || error.message;
   }
 };
 
-export const saveRecipeApi = async (recipeId) => {
+export const updateSavedCollectionApi = async (recipeId, collection) => {
   try {
-    const response = await api.post(`/api/recipes/${recipeId}/save`);
+    const response = await api.put(`/api/recipes/${recipeId}/saved-collection`, { collection });
     return response.data.data;
   } catch (error) {
     throw error.response?.data || error.message;

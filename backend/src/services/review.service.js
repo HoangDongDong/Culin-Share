@@ -1,21 +1,21 @@
 const reviewRepository = require('../repositories/review.repository');
+const savedRecipeRepository = require('../repositories/savedRecipe.repository');
+const { publishedRecipe } = require('./resourceSecurity');
 
-const {publishedRecipe}=require('./resourceSecurity');
 class ReviewService {
-    async addReview(userId, recipeId, rating, comment) {
+    async getReviewsByRecipe(recipeId) {
+        await publishedRecipe(recipeId);
+        return await reviewRepository.findByRecipeId(recipeId);
+    }
+
+    async addReview(userId, recipeId, rating, comment, imageUrl = null, tip = null) {
         await publishedRecipe(recipeId);
         const ratingVal = Number(rating);
-        if (!Number.isInteger(ratingVal) || ratingVal < 1 || ratingVal > 5 || (comment!==undefined&&comment!==null&&(typeof comment!=='string'||comment.length>5000))) {
+        if (!Number.isInteger(ratingVal) || ratingVal < 1 || ratingVal > 5 || 
+            (comment !== undefined && comment !== null && (typeof comment !== 'string' || comment.length > 5000)) ||
+            (tip !== undefined && tip !== null && (typeof tip !== 'string' || tip.length > 255))) {
             const error = new Error('Đánh giá phải từ 1 đến 5 sao');
             error.statusCode = 400;
-            throw error;
-        }
-
-        // Kiểm tra user đã review công thức này chưa
-        const existing = await reviewRepository.findByUserAndRecipe(userId, recipeId);
-        if (existing) {
-            const error = new Error('Bạn đã đánh giá công thức này rồi. Hãy chỉnh sửa đánh giá cũ thay vì tạo mới.');
-            error.statusCode = 409;
             throw error;
         }
 
@@ -23,13 +23,23 @@ class ReviewService {
             recipe_id: recipeId,
             user_id: userId,
             rating: ratingVal,
-            comment
+            comment,
+            image_url: imageUrl,
+            tip
         });
+
+        // Tự động liên kết: Khi thành viên chia sẻ ảnh thành phẩm hoặc đánh giá,
+        // tự động đánh dấu món ăn này vào bộ sưu tập "Món đã nấu" (cooked) của họ
+        try {
+            await savedRecipeRepository.create(userId, recipeId, 'cooked');
+        } catch (e) {
+            // Không ảnh hưởng đến luồng chính nếu lỗi
+        }
 
         return await reviewRepository.findById(reviewId);
     }
 
-    async updateReview(userId, reviewId, rating, comment) {
+    async updateReview(userId, reviewId, rating, comment, imageUrl = null, tip = null) {
         const review = await reviewRepository.findById(reviewId);
         if (!review) {
             const error = new Error('Không tìm thấy đánh giá');
@@ -44,17 +54,19 @@ class ReviewService {
         }
 
         const ratingVal = Number(rating);
-        if (!Number.isInteger(ratingVal) || ratingVal < 1 || ratingVal > 5 || (comment!==undefined&&comment!==null&&(typeof comment!=='string'||comment.length>5000))) {
+        if (!Number.isInteger(ratingVal) || ratingVal < 1 || ratingVal > 5 || 
+            (comment !== undefined && comment !== null && (typeof comment !== 'string' || comment.length > 5000)) ||
+            (tip !== undefined && tip !== null && (typeof tip !== 'string' || tip.length > 255))) {
             const error = new Error('Đánh giá phải từ 1 đến 5 sao');
             error.statusCode = 400;
             throw error;
         }
 
-        await reviewRepository.update(reviewId, userId, ratingVal, comment);
+        await reviewRepository.update(reviewId, userId, ratingVal, comment, imageUrl, tip);
         return await reviewRepository.findById(reviewId);
     }
 
-    async deleteReview(userId, reviewId) {
+    async deleteReview(userId, reviewId, isAdmin = false) {
         const review = await reviewRepository.findById(reviewId);
         if (!review) {
             const error = new Error('Không tìm thấy đánh giá');
@@ -62,13 +74,13 @@ class ReviewService {
             throw error;
         }
 
-        if (review.user_id !== userId) {
+        if (review.user_id !== userId && !isAdmin) {
             const error = new Error('Bạn không có quyền xóa đánh giá này');
             error.statusCode = 403;
             throw error;
         }
 
-        await reviewRepository.delete(reviewId, userId);
+        await reviewRepository.delete(reviewId, review.user_id);
     }
 }
 

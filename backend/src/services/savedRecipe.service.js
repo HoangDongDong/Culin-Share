@@ -1,15 +1,23 @@
 const savedRecipeRepository = require('../repositories/savedRecipe.repository');
+const { publishedRecipe } = require('./resourceSecurity');
 
-const {publishedRecipe}=require('./resourceSecurity');
 class SavedRecipeService {
-    async getSavedRecipes(userId) {
-        return await savedRecipeRepository.findAllByUserId(userId);
+    async getSavedRecipes(userId, collectionName = null) {
+        const recipes = await savedRecipeRepository.findAllByUserId(userId, collectionName);
+        const counts = await savedRecipeRepository.getCollectionCounts(userId);
+        return { recipes, counts };
     }
 
-    async saveRecipe(userId, recipeId) {
+    async saveRecipe(userId, recipeId, collectionName = 'want_to_try') {
         await publishedRecipe(recipeId);
-        await savedRecipeRepository.create(userId, recipeId);
-        return { saved: true };
+        await savedRecipeRepository.create(userId, recipeId, collectionName);
+        return { saved: true, collection: collectionName };
+    }
+
+    async updateCollection(userId, recipeId, collectionName) {
+        await publishedRecipe(recipeId);
+        await savedRecipeRepository.updateCollection(userId, recipeId, collectionName);
+        return { saved: true, collection: collectionName };
     }
 
     async unsaveRecipe(userId, recipeId) {
@@ -18,8 +26,8 @@ class SavedRecipeService {
     }
 
     async checkSavedStatus(userId, recipeId) {
-        const isSaved = await savedRecipeRepository.isSaved(userId, recipeId);
-        return { saved: isSaved };
+        const result = await savedRecipeRepository.isSaved(userId, recipeId);
+        return { saved: result.isSaved, collection: result.collection };
     }
 }
 

@@ -1,5 +1,6 @@
 const recipeRepository = require('../repositories/recipe.repository');
 const commentRepository = require('../repositories/comment.repository');
+const reviewRepository = require('../repositories/review.repository');
 const followService = require('./follow.service');
 const notificationService = require('./notification.service');
 const userRepository = require('../repositories/user.repository');
@@ -37,6 +38,7 @@ class RecipeService {
         const categories = await recipeRepository.getCategories(recipeId);
         const importInfo = recipeRepository.getImportInfo ? await recipeRepository.getImportInfo(recipeId) : null;
         const rawComments = await commentRepository.findByRecipeId(recipeId);
+        const reviews = await reviewRepository.findByRecipeId(recipeId);
 
         // Build hierarchical comments
         const comments = [];
@@ -67,7 +69,8 @@ class RecipeService {
             images,
             categories,
             importInfo,
-            comments
+            comments,
+            reviews
         };
 
         return detail;

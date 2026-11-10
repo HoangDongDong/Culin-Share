@@ -5,6 +5,7 @@ const { verifyToken } = require('../middlewares/authMiddleware');
 
 router.get('/me/saved-recipes', verifyToken, savedRecipeController.getSavedRecipes);
 router.post('/recipes/:id/save', verifyToken, savedRecipeController.saveRecipe);
+router.put('/recipes/:id/saved-collection', verifyToken, savedRecipeController.updateCollection);
 router.delete('/recipes/:id/save', verifyToken, savedRecipeController.unsaveRecipe);
 router.get('/recipes/:id/saved-status', verifyToken, savedRecipeController.checkSavedStatus);
 
