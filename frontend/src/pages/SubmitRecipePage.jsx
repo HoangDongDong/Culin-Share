@@ -347,6 +347,7 @@ const SubmitRecipePage = () => {
                     <div className="rounded-xl bg-surface-container-low p-3">
                       <p className="text-sm font-bold mb-2">Hẹn giờ bước {idx + 1} (tùy chọn)</p>
                       <StepDurationFields value={step.timer_seconds || 0} onChange={value => handleStepChange(idx, 'timer_seconds', value)} stepNumber={idx + 1} />
+                      <p className="text-xs text-secondary mt-2">Để 0 nếu muốn AI tự bổ sung thời gian khi mở công thức.</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-sm">
                       <div className="md:col-span-2">

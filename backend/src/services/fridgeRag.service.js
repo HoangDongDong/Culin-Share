@@ -140,7 +140,10 @@ class FridgeRagService {
                 !Array.isArray(suggestion.steps) || !suggestion.steps.every(step => typeof step === 'string')) continue;
             aiNames.add(identity(suggestion.name));
             aiRecipes.push({ name: suggestion.name, description: suggestion.description, source: 'ai',
-                ingredients: suggestion.ingredients, steps: suggestion.steps, difficulty: suggestion.difficulty,
+                ingredients: suggestion.ingredients, steps: suggestion.steps,
+                stepTimers: suggestion.steps.map((_, index) => Number.isInteger(suggestion.stepTimers?.[index]) &&
+                    suggestion.stepTimers[index] > 0 && suggestion.stepTimers[index] <= 604800 ? suggestion.stepTimers[index] : 0),
+                difficulty: suggestion.difficulty,
                 prepTime: Number(suggestion.prepTime) || 0, cookTime: Number(suggestion.cookTime) || 0 });
         }
         for (const recipe of context) if (coverage(recipe).ingredientCoverage >= 0.5) chosen.set(recipe.id, recipe);

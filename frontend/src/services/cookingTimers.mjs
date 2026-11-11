@@ -28,7 +28,7 @@ export function restoreTimers(raw, now) {
     const keys = new Set();
     return finishDueTimers(saved.filter(timer => {
       if (!timer || typeof timer.key !== 'string' || keys.has(timer.key) ||
-          typeof timer.recipeId !== 'string' || !/^\d+$/.test(timer.recipeId) ||
+          (timer.recipeId !== null && (typeof timer.recipeId !== 'string' || !/^\d+$/.test(timer.recipeId))) ||
           typeof timer.recipeTitle !== 'string' || typeof timer.runId !== 'string' ||
           !Number.isInteger(timer.stepNumber) || timer.stepNumber < 1 ||
           !Number.isInteger(timer.durationSeconds) || timer.durationSeconds < 1 || timer.durationSeconds > MAX_TIMER_SECONDS ||

@@ -2,6 +2,7 @@ const aiService = require('../services/ai.service');
 const adminRepository = require('../repositories/admin.repository');
 const fridgeRag = require('../services/fridgeRag.service');
 const fridgeHistory = require('../repositories/fridgeHistory.repository');
+const stepTiming = require('../services/stepTiming.service');
 
 function historyId(value) {
     if (!/^\d+$/.test(String(value)) || !Number.isSafeInteger(Number(value)) || Number(value) < 1) {
@@ -11,6 +12,25 @@ function historyId(value) {
 }
 
 class AIController {
+    async completeStepTimers(req, res, next) {
+        try {
+            const { title, ingredients, servings, steps, stepTimers } = req.body;
+            if (typeof title !== 'string' || title.length > 300 || !Array.isArray(ingredients) || ingredients.length > 100 ||
+                (stepTimers !== undefined && !Array.isArray(stepTimers))) {
+                return res.status(400).json({ success: false, message: 'Thông tin công thức không hợp lệ.' });
+            }
+            const timers = await stepTiming.complete({ title, ingredients, servings, steps, stepTimers });
+            res.json({ success: true, data: { stepTimers: timers } });
+        } catch (error) { next(error); }
+    }
+
+    async completeStoredStepTimers(req, res, next) {
+        try {
+            const steps = await stepTiming.ensureStored(req.params.id, req.user);
+            res.json({ success: true, data: { steps } });
+        } catch (error) { next(error); }
+    }
+
     async suggestRecipesFromFridge(req, res, next) {
         try {
             const { ingredients: rawIngredients, peopleCount, complexity, cookingSpeed, dishCount, dishDistribution } = req.body;

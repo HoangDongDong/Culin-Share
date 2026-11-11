@@ -74,6 +74,8 @@ test('reload restores running and paused timers and catches up timers that expir
     restored = restoreTimers(JSON.stringify(state.timers), 1000000);
     assert.equal(restored[0].status, 'paused');
     assert.equal(restored[0].remainingMs, 71000);
+    const generated = timerReducer({ timers: [], now: 0 }, { type: 'start', timer: timer({ recipeId: null, key: 'fridge-ai:test:1' }), now: 0 });
+    assert.equal(restoreTimers(JSON.stringify(generated.timers), 1000)[0].recipeId, null);
 });
 
 test('invalid browser data and impossible durations cannot create a countdown', async () => {

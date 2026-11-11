@@ -7,7 +7,7 @@ import Footer from "../components/Footer";
 import { StepTimer } from '../components/CookingTimers';
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import DeleteSuccessModal from "../components/DeleteSuccessModal";
-import { getImageUrl } from "../services/api";
+import api, { getImageUrl } from "../services/api";
 import {applySeo, recipeSeo, routeSeo} from "../services/seo.mjs";
 import {
   getRecipeByIdApi,
@@ -49,6 +49,9 @@ const RecipeDetailPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleteSuccessOpen, setIsDeleteSuccessOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [timerError, setTimerError] = useState(null);
+  const missingTimers = recipe?.steps?.some(step => !(Number(step.timer_seconds) > 0));
+  const timerErrorMessage = timerError?.recipeId === id ? timerError.message : '';
 
   const userHasHealthStats = user?.height && user?.weight;
   
@@ -124,6 +127,26 @@ const RecipeDetailPage = () => {
   useEffect(() => {
     fetchRecipeDetails();
   }, [id, token]);
+
+  useEffect(() => {
+    if (!recipe || String(recipe.id) !== id || !missingTimers || timerErrorMessage) return;
+    const controller = new AbortController();
+    api.post(`/api/recipes/${id}/step-timers`, {}, { signal: controller.signal }).then(response => {
+      if (controller.signal.aborted) return;
+      const updated = new Map(response.data.data.steps.map(step => [step.id, step]));
+      if (recipe.steps.some(step => updated.get(step.id)?.instruction !== step.instruction || !(updated.get(step.id)?.timer_seconds > 0))) {
+        throw new Error('Công thức vừa thay đổi. Hãy tải lại trang để cập nhật thời gian.');
+      }
+      setRecipe(current => !current || String(current.id) !== id ? current : {
+        ...current, steps: current.steps.map(step => updated.get(step.id)?.instruction === step.instruction ?
+          { ...step, timer_seconds: updated.get(step.id).timer_seconds } : step)
+      });
+    }).catch(error => {
+      if (!controller.signal.aborted) setTimerError({ recipeId: id,
+        message: error.response?.data?.message || error.message || 'AI chưa bổ sung được thời gian. Vui lòng thử lại.' });
+    });
+    return () => controller.abort();
+  }, [id, recipe, missingTimers, timerErrorMessage]);
 
   useEffect(() => {
     if(recipe && String(recipe.id) === String(id)) applySeo(recipeSeo(recipe));
@@ -392,6 +415,11 @@ const RecipeDetailPage = () => {
                 <h2 className="font-headline-md text-headline-md font-bold">Cách chế biến</h2>
               </div>
               <div className="space-y-md">
+                {missingTimers && <div className="rounded-xl bg-primary/5 p-3 text-sm" role="status">
+                  {timerErrorMessage ? <><p>{timerErrorMessage}</p><button type="button" className="mt-2 text-primary font-bold underline" onClick={() => setTimerError(null)}>Yêu cầu AI bổ sung lại</button></> :
+                    <p>AI đang bổ sung thời gian cho các bước còn thiếu…</p>}
+                </div>}
+                <p className="text-xs text-secondary">Thời gian còn thiếu được AI ước tính theo từng thao tác. Bạn có thể điều chỉnh trước khi bắt đầu.</p>
                 {recipe.steps && recipe.steps.map((step, idx) => (
                   <div key={step.id || idx} className={`flex flex-col md:flex-row gap-6 p-4 rounded-xl hover:bg-surface-container transition-all border-l-4 ${idx === 0 ? "border-primary bg-surface-container-low" : "border-outline-variant bg-surface-container-lowest"}`}>
                     <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-display-lg text-headline-sm font-bold shadow-sm ${idx === 0 ? "bg-primary text-white" : "bg-surface-container-highest text-secondary border border-outline-variant/20"}`}>
@@ -408,7 +436,8 @@ const RecipeDetailPage = () => {
                         />
                       )}
                       <StepTimer key={`${recipe.id}:${step.id || idx + 1}`} recipeId={recipe.id} recipeTitle={recipe.title}
-                        stepId={step.id || idx + 1} stepNumber={step.step_number || idx + 1} durationSeconds={step.timer_seconds} />
+                        stepId={step.id || idx + 1} stepNumber={step.step_number || idx + 1} durationSeconds={step.timer_seconds}
+                        estimating={missingTimers && !timerErrorMessage} />
                     </div>
                   </div>
                 ))}

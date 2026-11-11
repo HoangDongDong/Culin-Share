@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useSelector } from 'react-redux';
 import FridgeHistory from '../components/FridgeHistory';
+import AIRecipeSteps from '../components/AIRecipeSteps';
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import api, { getImageUrl } from "../services/api";
@@ -955,21 +956,13 @@ const SmartFridgePage = ({ token }) => {
                   <h4 className="font-headline-sm font-bold text-base text-on-surface">Các bước chế biến</h4>
                 </div>
 
-                <div className="space-y-3">
-                  {activeRecipe.steps?.map((step, idx) => (
-                    <div key={idx} className="flex gap-4 p-4 rounded-xl border border-outline-variant/15 bg-surface-container-lowest hover:bg-surface-container-low transition-all">
-                      <div className="w-10 h-10 rounded-full bg-primary text-white font-bold flex items-center justify-center flex-shrink-0 text-sm shadow-sm mt-0.5">
-                        {idx + 1}
-                      </div>
-                      <div className="flex-grow">
-                        <h5 className="text-xs font-bold text-primary uppercase tracking-wider mb-1">
-                          Bước {idx + 1}
-                        </h5>
-                        <p className="text-sm text-on-surface leading-relaxed">{step}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {activeRecipe.steps?.length > 0 && <AIRecipeSteps recipe={activeRecipe} onResolved={stepTimers => {
+                  const updated = suggestions.map(recipe => recipe === activeRecipe ? { ...recipe, stepTimers } : recipe);
+                  setSuggestions(updated);
+                  setActiveRecipe({ ...activeRecipe, stepTimers });
+                  try { localStorage.setItem('fridgeSuggestions', JSON.stringify(updated)); }
+                  catch { /* Timers remain available for the current meal. */ }
+                }} />}
               </div>
             </div>
 

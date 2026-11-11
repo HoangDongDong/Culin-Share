@@ -8,7 +8,7 @@ CulinShare là ứng dụng web giúp người dùng tìm kiếm, đăng và lư
 | --- | --- |
 | Tài khoản | Đăng ký, xác minh email bằng OTP, đăng nhập, Google Sign-In, khôi phục mật khẩu, quản lý hồ sơ |
 | Công thức | Đăng/sửa công thức, ảnh bìa và ảnh từng bước, nguyên liệu, khẩu phần, calo, độ khó, thời gian chuẩn bị và nấu |
-| Hẹn giờ từng bước | Nhập phút/giây khi đăng hoặc sửa công thức; bắt đầu, tạm dừng, tiếp tục, đặt lại và theo dõi nhiều bộ đếm; giữ thời gian khi chuyển trang hoặc tải lại cùng tab; báo hết giờ trong trang, bằng chuông và thông báo trình duyệt khi được cấp quyền |
+| Hẹn giờ từng bước | AI tự bổ sung và lưu thời gian cho bước còn thiếu khi mở công thức; món mới từ Tủ lạnh AI có thời gian từng bước; có thể điều chỉnh phút/giây, bắt đầu, tạm dừng, tiếp tục, đặt lại và theo dõi nhiều bộ đếm; giữ thời gian khi chuyển trang hoặc tải lại cùng tab; báo hết giờ trong trang, bằng chuông và thông báo trình duyệt khi được cấp quyền |
 | Khám phá | Gợi ý tìm kiếm sau 300 ms, tìm tiếng Việt không dấu, lọc danh mục/độ khó/calo/thời gian, phân trang tại backend |
 | Tương tác | Lưu công thức, đánh giá, bình luận/trả lời, theo dõi tác giả, bảng xếp hạng và thông báo thời gian thực |
 | Tủ lạnh AI | Nhập nguyên liệu và định lượng, chọn số người/số món/độ khó/thời gian, ưu tiên công thức phù hợp từ database, bổ sung gợi ý AI khi cần; tự lưu lịch sử theo tài khoản, mở lại bữa ăn và xóa từng lần gợi ý |

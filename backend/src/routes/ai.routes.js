@@ -3,6 +3,7 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const aiController = require('../controllers/ai.controller');
 const { verifyToken } = require('../middlewares/authMiddleware');
+const optionalAuth = (req, res, next) => req.headers.authorization ? verifyToken(req, res, next) : next();
 
 /**
  * Rate limiter cho AI API
@@ -28,6 +29,8 @@ const aiLimiter = rateLimit({
  * Middlewares: verifyToken -> aiLimiter -> Controller
  */
 router.post('/ai/fridge-suggest', verifyToken, aiLimiter, aiController.suggestRecipesFromFridge);
+router.post('/ai/step-timers', verifyToken, aiLimiter, aiController.completeStepTimers);
+router.post('/recipes/:id/step-timers', optionalAuth, aiLimiter, aiController.completeStoredStepTimers);
 router.get('/ai/fridge-history', verifyToken, aiController.getFridgeHistory);
 router.get('/ai/fridge-history/:id', verifyToken, aiController.getFridgeHistoryEntry);
 router.delete('/ai/fridge-history/:id', verifyToken, aiController.deleteFridgeHistoryEntry);

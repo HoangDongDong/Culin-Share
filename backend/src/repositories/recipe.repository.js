@@ -271,6 +271,23 @@ class RecipeRepository {
         }
     }
 
+    async fillMissingStepTimers(recipeId, steps) {
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+            for (const step of steps) {
+                await connection.query(`UPDATE recipe_steps SET timer_seconds = ?
+                    WHERE recipe_id = ? AND id = ? AND instruction = ?
+                    AND (timer_seconds IS NULL OR timer_seconds <= 0)`,
+                    [step.timer_seconds, recipeId, step.id, step.instruction]);
+            }
+            await connection.commit();
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally { connection.release(); }
+    }
+
     async saveImages(recipeId, images) {
         // Clear old ones
         await pool.query('DELETE FROM recipe_images WHERE recipe_id = ?', [recipeId]);

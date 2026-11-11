@@ -149,11 +149,12 @@ function TimerControls({ timer }) {
   </div>;
 }
 
-export function StepTimer({ recipeId, recipeTitle, stepId, stepNumber, durationSeconds = 0 }) {
+export function StepTimer({ recipeId, recipeTitle, stepId, stepNumber, durationSeconds = 0, timerGroupId, estimating = false }) {
   const { timers, now, start } = useContext(TimerContext);
-  const key = `${recipeId}:${stepId}`;
+  const key = `${timerGroupId || recipeId}:${stepId}`;
   const timer = timers.find(item => item.key === key);
-  const [duration, setDuration] = useState(() => timer?.durationSeconds || Number(durationSeconds) || 0);
+  const [customDuration, setDuration] = useState(null);
+  const duration = customDuration ?? timer?.durationSeconds ?? (Number(durationSeconds) || 0);
   const active = timer && ['running', 'paused'].includes(timer.status);
   const seconds = timer && timer.status !== 'idle' ? remainingMilliseconds(timer, now) / 1000 : duration;
   return <div className="mt-3 p-3 sm:p-4 rounded-xl border border-primary/20 bg-white" role="group" aria-label={`Hẹn giờ bước ${stepNumber}`}>
@@ -163,13 +164,13 @@ export function StepTimer({ recipeId, recipeTitle, stepId, stepNumber, durationS
     </div>
     <StepDurationFields value={duration} onChange={setDuration} disabled={Boolean(active)} stepNumber={stepNumber} />
     <div className="flex flex-wrap gap-2 mt-3">
-      {!active && <button type="button" disabled={duration < 1} onClick={() => start({ key, recipeId: String(recipeId), recipeTitle, stepNumber, durationSeconds: duration })}
+      {!active && <button type="button" disabled={duration < 1} onClick={() => start({ key, recipeId: recipeId == null ? null : String(recipeId), recipeTitle, stepNumber, durationSeconds: duration })}
         className="px-3 py-2 rounded-lg bg-primary text-white text-sm font-bold disabled:opacity-50">{timer?.status === 'finished' ? 'Chạy lại' : 'Bắt đầu'}</button>}
       {timer && <TimerControls timer={timer} />}
     </div>
     {timer?.status === 'paused' && <p role="status" className="text-xs text-secondary mt-2">Đã tạm dừng.</p>}
     {timer?.status === 'finished' && <p role="status" className="text-sm text-primary font-bold mt-2">Đã hết giờ bước {stepNumber}!</p>}
-    {!duration && <p className="text-xs text-secondary mt-2">Nhập thời gian để bắt đầu hẹn giờ.</p>}
+    {!duration && <p className="text-xs text-secondary mt-2">{estimating ? 'AI đang ước tính thời gian cho bước này…' : 'Chưa có thời gian. Hãy yêu cầu AI bổ sung lại hoặc điều chỉnh thời lượng.'}</p>}
   </div>;
 }
 
@@ -188,7 +189,7 @@ function TimerTray() {
       <ul className="space-y-3">
         {visible.map(timer => <li key={timer.key} className={`rounded-xl p-3 border ${timer.status === 'finished' ? 'border-primary bg-primary/5' : 'border-outline-variant/30'}`}>
           <div className="flex items-start justify-between gap-2">
-            <Link to={`/recipe/${timer.recipeId}`} className="text-sm font-bold hover:underline break-words">Bước {timer.stepNumber} · {timer.recipeTitle}</Link>
+            <Link to={timer.recipeId ? `/recipe/${timer.recipeId}` : '/fridge'} className="text-sm font-bold hover:underline break-words">Bước {timer.stepNumber} · {timer.recipeTitle}</Link>
             <button type="button" onClick={() => control('remove', timer.key)} aria-label={`${timer.status === 'finished' ? 'Đóng' : 'Hủy'} hẹn giờ bước ${timer.stepNumber} của ${timer.recipeTitle}`} className="text-secondary p-1"><span className="material-symbols-outlined text-lg" aria-hidden="true">close</span></button>
           </div>
           <p role={timer.status === 'finished' ? 'status' : 'timer'} aria-live={timer.status === 'finished' ? 'polite' : 'off'} className="my-2 text-xl text-primary font-bold tabular-nums">
