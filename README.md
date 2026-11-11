@@ -8,9 +8,10 @@ CulinShare là ứng dụng web giúp người dùng tìm kiếm, đăng và lư
 | --- | --- |
 | Tài khoản | Đăng ký, xác minh email bằng OTP, đăng nhập, Google Sign-In, khôi phục mật khẩu, quản lý hồ sơ |
 | Công thức | Đăng/sửa công thức, ảnh bìa và ảnh từng bước, nguyên liệu, khẩu phần, calo, độ khó, thời gian chuẩn bị và nấu |
+| Hẹn giờ từng bước | Nhập phút/giây khi đăng hoặc sửa công thức; bắt đầu, tạm dừng, tiếp tục, đặt lại và theo dõi nhiều bộ đếm; giữ thời gian khi chuyển trang hoặc tải lại cùng tab; báo hết giờ trong trang, bằng chuông và thông báo trình duyệt khi được cấp quyền |
 | Khám phá | Gợi ý tìm kiếm sau 300 ms, tìm tiếng Việt không dấu, lọc danh mục/độ khó/calo/thời gian, phân trang tại backend |
 | Tương tác | Lưu công thức, đánh giá, bình luận/trả lời, theo dõi tác giả, bảng xếp hạng và thông báo thời gian thực |
-| Tủ lạnh AI | Nhập nguyên liệu và định lượng, chọn số người/số món/độ khó/thời gian, ưu tiên công thức phù hợp từ database, bổ sung gợi ý AI khi cần |
+| Tủ lạnh AI | Nhập nguyên liệu và định lượng, chọn số người/số món/độ khó/thời gian, ưu tiên công thức phù hợp từ database, bổ sung gợi ý AI khi cần; tự lưu lịch sử theo tài khoản, mở lại bữa ăn và xóa từng lần gợi ý |
 | Danh sách đi chợ | Tính nguyên liệu còn thiếu cho cả bữa, bỏ qua gia vị cơ bản, xuất PDF tiếng Việt có ô đánh dấu và chia trang |
 | Cộng đồng | Đăng bài kèm ảnh/công thức, tìm và lọc bảng tin, thích, lưu, bình luận, báo cáo, tham gia thử thách và đăng ký sự kiện |
 | Trang chủ | Đọc danh mục, công thức, tác giả nổi bật, bài cộng đồng và công thức được lưu trong tuần từ database |
@@ -138,6 +139,8 @@ npm run dev
 Backend local chạy tại **http://localhost:3000**. Khi khởi động local, backend tự áp dụng migration chưa chạy trước khi nhận request; các thành viên pull mã mới sẽ được cập nhật schema của database trên máy mình.
 
 Khi có biến `VERCEL`, backend xuất Express app, không mở HTTP listener riêng, không khởi tạo Socket.IO và không chạy luồng migration lúc khởi động. Database cloud phải có schema trước khi sử dụng API; phản hồi thành công tại `/` chỉ xác nhận app hoạt động, không xác nhận schema/kết nối database. Thông báo realtime cần dịch vụ riêng khi chạy theo chế độ này.
+
+Lịch sử Tủ lạnh ảo cần migration `202611110001-fridge-history`. Chạy `npm run db:migrate` trong `backend` trên database đích trước khi triển khai backend mới lên Vercel. Mỗi lần gợi ý thành công lưu nguyên liệu, tùy chọn bữa ăn, công thức và danh sách đi chợ vào tài khoản. Dữ liệu lịch sử được phân trang 10 lần mỗi trang. Các kết quả cũ chỉ lưu trên trình duyệt chưa có bản ghi lịch sử trong database.
 
 Kết nối database tự bật TLS tối thiểu 1.2 và xác minh chứng chỉ khi chạy trên Vercel, host thuộc `tidbcloud.com` hoặc cổng 4000; có thể bật bằng `DB_SSL=true` cho host khác. Pool và kết nối migration dùng chung cấu hình này. Với TiDB Cloud, đặt rõ `DB_HOST`, `DB_PORT=4000`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`. Khả năng tương thích toàn bộ migration MySQL với TiDB cần được kiểm tra trên database đích trước khi áp dụng.
 

@@ -5,7 +5,7 @@ const followService = require('./follow.service');
 const notificationService = require('./notification.service');
 const userRepository = require('../repositories/user.repository');
 
-const {id:validId,validateUrls}=require('./resourceSecurity');
+const {id:validId,validateUrls,parseRecipeSteps}=require('./resourceSecurity');
 const {cleanRecipeContent}=require('./foodText');
 class RecipeService {
     generateSlug(title) {
@@ -99,7 +99,7 @@ class RecipeService {
 
     async createRecipe(authorId, data) {
         validateUrls(data);
-        data=cleanRecipeContent(data);
+        data=cleanRecipeContent({ ...data, steps: parseRecipeSteps(data.steps) });
         const slug = this.generateSlug(data.title);
         const recipeData = {
             author_id: authorId,
@@ -130,8 +130,7 @@ class RecipeService {
         }
 
         if (data.steps) {
-            const steps = typeof data.steps === 'string' ? JSON.parse(data.steps) : data.steps;
-            await recipeRepository.saveSteps(recipeId, steps);
+            await recipeRepository.saveSteps(recipeId, data.steps);
         }
 
         if (data.images) {
@@ -171,7 +170,7 @@ class RecipeService {
 
     async updateRecipe(id, authorId, userRole, data) {
         validId(id);validateUrls(data);
-        data=cleanRecipeContent(data);
+        data=cleanRecipeContent({ ...data, steps: parseRecipeSteps(data.steps) });
         const recipe = await recipeRepository.findById(id);
         if (!recipe) {
             const error = new Error('Không tìm thấy công thức nấu ăn');
@@ -212,8 +211,7 @@ class RecipeService {
         }
 
         if (data.steps) {
-            const steps = typeof data.steps === 'string' ? JSON.parse(data.steps) : data.steps;
-            await recipeRepository.saveSteps(id, steps);
+            await recipeRepository.saveSteps(id, data.steps);
         }
 
         if (data.images) {

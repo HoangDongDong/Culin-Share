@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { StepDurationFields } from '../components/CookingTimers';
 import { getCategoriesApi } from "../services/categoryApi";
 import { getRecipeByIdApi, updateRecipeApi } from "../services/recipeApi";
 import { getImageUrl } from "../services/api";
@@ -83,6 +84,7 @@ const EditRecipePage = () => {
           const formattedSteps = recipeData.steps.map(step => ({
             step_number: step.step_number || 1,
             instruction: step.instruction || "",
+            timer_seconds: Number(step.timer_seconds) || 0,
             image_url: step.image_url || "",
             image_file: null,
             image_preview: ""
@@ -202,6 +204,7 @@ const EditRecipePage = () => {
         steps: steps.filter(s => s.instruction.trim() !== "").map((s, idx) => ({
           step_number: idx + 1,
           instruction: s.instruction,
+          timer_seconds: s.timer_seconds || 0,
           image_url: s.image_url,
           image_file: s.image_file
         })),
@@ -446,6 +449,10 @@ const EditRecipePage = () => {
                             required
                           ></textarea>
                           
+                          <div className="rounded-xl bg-surface-container-low p-3">
+                            <p className="text-sm font-bold mb-2">Hẹn giờ bước {idx + 1} (tùy chọn)</p>
+                            <StepDurationFields value={step.timer_seconds || 0} onChange={value => handleStepChange(idx, 'timer_seconds', value)} stepNumber={idx + 1} />
+                          </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-sm items-end">
                             <div className="flex flex-col gap-1">
                               <label className="text-xs font-bold text-on-surface-variant">Link ảnh minh họa bước (Tùy chọn)</label>

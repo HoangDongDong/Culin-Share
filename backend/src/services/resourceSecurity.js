@@ -17,4 +17,22 @@ function validateUrls(value,key=''){
         }
     }
 }
-module.exports={id,publishedRecipe,validateUrls};
+function parseRecipeSteps(value) {
+    if (value === undefined || value === null) return value;
+    let steps = value;
+    if (typeof steps === 'string') {
+        try { steps = JSON.parse(steps); }
+        catch { invalid('Danh sách bước nấu không hợp lệ'); }
+    }
+    if (!Array.isArray(steps)) invalid('Danh sách bước nấu không hợp lệ');
+    return steps.map(step => {
+        if (!step || typeof step !== 'object' || Array.isArray(step)) invalid('Bước nấu không hợp lệ');
+        const raw = step.timer_seconds ?? 0;
+        const seconds = Number(raw);
+        if (!['number', 'string'].includes(typeof raw) || !Number.isInteger(seconds) || seconds < 0 || seconds > 2147483647) {
+            invalid('Thời gian hẹn giờ phải là số giây nguyên không âm hợp lệ');
+        }
+        return { ...step, timer_seconds: seconds };
+    });
+}
+module.exports={id,publishedRecipe,validateUrls,parseRecipeSteps};

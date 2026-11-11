@@ -4,6 +4,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { StepTimer } from '../components/CookingTimers';
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import DeleteSuccessModal from "../components/DeleteSuccessModal";
 import { getImageUrl } from "../services/api";
@@ -406,12 +407,8 @@ const RecipeDetailPage = () => {
                           alt={`Bước ${step.step_number || (idx + 1)}`}
                         />
                       )}
-                      {step.timer_seconds > 0 && (
-                        <div className="mt-3 flex items-center gap-2 text-xs text-primary font-bold">
-                          <span className="material-symbols-outlined text-sm">alarm</span>
-                          Hẹn giờ: {Math.floor(step.timer_seconds / 60)} phút {step.timer_seconds % 60} giây
-                        </div>
-                      )}
+                      <StepTimer key={`${recipe.id}:${step.id || idx + 1}`} recipeId={recipe.id} recipeTitle={recipe.title}
+                        stepId={step.id || idx + 1} stepNumber={step.step_number || idx + 1} durationSeconds={step.timer_seconds} />
                     </div>
                   </div>
                 ))}

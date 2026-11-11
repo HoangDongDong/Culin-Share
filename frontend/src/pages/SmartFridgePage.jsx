@@ -1,6 +1,8 @@
 import { useRequireLogin } from "../components/AuthPrompt";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useSelector } from 'react-redux';
+import FridgeHistory from '../components/FridgeHistory';
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import api, { getImageUrl } from "../services/api";
@@ -21,7 +23,7 @@ const recipeIngredientLabel = ingredient => {
   return [quantity, ingredient.unit, ingredient.name].filter(value => value !== undefined && value !== null && value !== '').join(' ');
 };
 
-const SmartFridgePage = () => {
+const SmartFridgePage = ({ token }) => {
   const requireLogin = useRequireLogin();
   const draft = useLocation().state?.fridgeDraft;
   const hasSession = () => {
@@ -30,7 +32,7 @@ const SmartFridgePage = () => {
   };
   const [fridgeItems, setFridgeItems] = useState(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem("fridgeItems") || "[]");
+      const saved = draft?.fridgeItems || JSON.parse(localStorage.getItem("fridgeItems") || "[]");
       return Array.isArray(saved) ? saved
         .map(item => typeof item === "string" ? { name: item, quantity: "" } : item)
         .filter(item => item && typeof item.name === "string") : [];
@@ -48,7 +50,7 @@ const SmartFridgePage = () => {
     try {
       const saved = JSON.parse(localStorage.getItem("fridgeDishDistribution"));
       if (saved && typeof saved === "object") return saved;
-    } catch {}
+    } catch { /* Use the default distribution for invalid browser data. */ }
     return { easy: 1, medium: 1, hard: 1 };
   });
   const [cookingSpeed, setCookingSpeed] = useState(() => {
@@ -76,6 +78,8 @@ const SmartFridgePage = () => {
   const [activeRecipe, setActiveRecipe] = useState(null);
   const [error, setError] = useState("");
   const [modalCheckedIngredients, setModalCheckedIngredients] = useState([]);
+  const [historyRevision, setHistoryRevision] = useState(0);
+  const [restoredAt, setRestoredAt] = useState(null);
 
   // Tự động lưu cấu hình bữa ăn vào localStorage
   useEffect(() => {
@@ -119,6 +123,32 @@ const SmartFridgePage = () => {
     setGlobalShoppingList([]);
     localStorage.removeItem("fridgeSuggestions");
     localStorage.removeItem("fridgeShoppingList");
+    setRestoredAt(null);
+  };
+
+  const restoreHistory = entry => {
+    const config = entry.request_config;
+    const result = entry.result;
+    setFridgeItems(config.ingredients);
+    setPeopleCount(config.peopleCount);
+    setCookingSpeed(config.cookingSpeed);
+    // Older API clients did not send the difficulty distribution.
+    setDishDistribution(config.dishDistribution || { easy: config.dishCount, medium: 0, hard: 0 });
+    setSuggestions(result.recipes);
+    setGlobalShoppingList(result.shoppingList || []);
+    setActiveRecipe(null);
+    setModalCheckedIngredients([]);
+    setRestoredAt(entry.created_at);
+    setError('');
+    setPdfError('');
+    try {
+      localStorage.setItem('fridgeItems', JSON.stringify(config.ingredients));
+      localStorage.setItem('fridgeSuggestions', JSON.stringify(result.recipes));
+      localStorage.setItem('fridgeShoppingList', JSON.stringify(result.shoppingList || []));
+    } catch {
+      setError('Đã mở lịch sử. Trình duyệt chưa lưu được bản xem gần nhất.');
+    }
+    document.getElementById('ai-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const inferUnit = (name, qty) => {
@@ -280,8 +310,9 @@ const SmartFridgePage = () => {
       const complexityStr = `Yêu cầu phân bổ đúng độ khó: ${dishDistribution.easy} món dễ, ${dishDistribution.medium} món trung bình, ${dishDistribution.hard} món khó.`;
       
       const response = await api.post("/api/ai/fridge-suggest", {
-        ingredients: fridgeItems, peopleCount, complexity: complexityStr, cookingSpeed, dishCount: totalDishes,
+        ingredients: fridgeItems, peopleCount, complexity: complexityStr, cookingSpeed, dishCount: totalDishes, dishDistribution,
       });
+      if (localStorage.getItem('token') !== token) return;
       if (response.data.success) {
         let loadedSuggestions = [];
         let loadedShoppingList = [];
@@ -296,6 +327,8 @@ const SmartFridgePage = () => {
         }
         setSuggestions(loadedSuggestions);
         setGlobalShoppingList(loadedShoppingList);
+        setRestoredAt(null);
+        setHistoryRevision(value => value + 1);
         try {
           localStorage.setItem("fridgeSuggestions", JSON.stringify(loadedSuggestions));
           localStorage.setItem("fridgeShoppingList", JSON.stringify(loadedShoppingList));
@@ -557,8 +590,11 @@ const SmartFridgePage = () => {
           </button>
         </div>
 
+        {token && <FridgeHistory key={`${token}:${historyRevision}`} token={token} onRestore={restoreHistory} disabled={loading} />}
+
         {/* ═══ PHẦN 3: KẾT QUẢ AI ═══ */}
         <div id="ai-results">
+          {restoredAt && <p role="status" className="text-sm text-primary mb-3">Đang xem lần gợi ý ngày {new Date(restoredAt).toLocaleString('vi-VN')}.</p>}
           {loading ? (
             <div style={{ background: "#fff", borderRadius: 16, border: "1px solid rgba(225,191,183,0.15)", padding: 32, boxShadow: "0 4px 20px rgba(72,72,72,0.06)" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))", gap: 20 }}>
@@ -956,4 +992,7 @@ const SmartFridgePage = () => {
   );
 };
 
-export default SmartFridgePage;
+export default function SmartFridge() {
+  const token = useSelector(state => state.auth.token);
+  return <SmartFridgePage key={token || 'guest'} token={token} />;
+}

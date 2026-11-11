@@ -28,12 +28,14 @@ import SmartFridgePage from "./pages/SmartFridgePage.jsx";
 import ErrorPage from "./pages/ErrorPage.jsx";
 import CommunityPage from "./pages/CommunityPage.jsx";
 import { AuthPromptProvider, ProtectedPage } from "./components/AuthPrompt";
+import { CookingTimerProvider } from './components/CookingTimers';
 
 function App() {
   const {pathname}=useLocation();
   const page=pathname==='/'?'home':pathname.split('/')[1];
   useEffect(()=>{window.scrollTo({top:0,left:0,behavior:'auto'});},[pathname]);
   return (
+    <CookingTimerProvider>
     <AuthPromptProvider>
     <div className="app-shell" data-page={page}>
     <RouteSeo/>
@@ -72,6 +74,7 @@ function App() {
     <MobileNavigation/>
     </div>
     </AuthPromptProvider>
+    </CookingTimerProvider>
   );
 }
 

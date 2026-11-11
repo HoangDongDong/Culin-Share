@@ -40,6 +40,8 @@ api.interceptors.response.use(
         window.localStorage.removeItem('token')
         window.localStorage.removeItem('user')
         window.localStorage.removeItem('fridgeItems')
+        window.localStorage.removeItem('fridgeSuggestions')
+        window.localStorage.removeItem('fridgeShoppingList')
         onAuthExpired()
         
         // Hiển thị thông báo đẹp mắt bằng react-hot-toast

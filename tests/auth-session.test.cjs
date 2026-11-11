@@ -5,7 +5,8 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 function loadApi() {
-  const storage = new Map([['token', 'current-token'], ['user', '{}'], ['fridgeItems', '[]']]);
+  const storage = new Map([['token', 'current-token'], ['user', '{}'], ['fridgeItems', '[]'],
+    ['fridgeSuggestions', '[{"name":"Món riêng tư"}]'], ['fridgeShoppingList', '["Gà"]']]);
   const redirects = [];
   let requestHandler, rejectHandler, expired = 0;
   const context = {

@@ -154,6 +154,8 @@ test('API delegates to RAG and rejects malformed input before an external call',
     const pool = require('../backend/src/config/database');
     t.mock.method(pool, 'query', async sql => { assert.ok(sql.includes('CREATE TABLE IF NOT EXISTS ai_logs')); return [[]]; });
     const controller = require('../backend/src/controllers/ai.controller');
+    const history = require('../backend/src/repositories/fridgeHistory.repository');
+    t.mock.method(history, 'create', async () => 1);
     const admin = require('../backend/src/repositories/admin.repository');
     t.mock.method(admin, 'logAiUsage', async () => {});
     let calls = 0, status, body;

@@ -39,6 +39,8 @@ export const loginAccount = createAsyncThunk(
         localStorage.setItem('token', response.data.token)
         localStorage.setItem('user', JSON.stringify(response.data.user))
         localStorage.removeItem('fridgeItems')
+        localStorage.removeItem('fridgeSuggestions')
+        localStorage.removeItem('fridgeShoppingList')
       }
       return response.data
     } catch (error) {
@@ -142,6 +144,8 @@ const authSlice = createSlice({
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       localStorage.removeItem('fridgeItems')
+      localStorage.removeItem('fridgeSuggestions')
+      localStorage.removeItem('fridgeShoppingList')
     },
     setGoogleAuth(state, action) {
       state.status = 'succeeded';
@@ -151,6 +155,8 @@ const authSlice = createSlice({
       localStorage.setItem('token', action.payload.token);
       localStorage.setItem('user', JSON.stringify(action.payload.user));
       localStorage.removeItem('fridgeItems');
+      localStorage.removeItem('fridgeSuggestions');
+      localStorage.removeItem('fridgeShoppingList');
     },
   },
   extraReducers: (builder) => {

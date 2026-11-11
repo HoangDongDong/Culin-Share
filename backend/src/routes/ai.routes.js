@@ -28,6 +28,9 @@ const aiLimiter = rateLimit({
  * Middlewares: verifyToken -> aiLimiter -> Controller
  */
 router.post('/ai/fridge-suggest', verifyToken, aiLimiter, aiController.suggestRecipesFromFridge);
+router.get('/ai/fridge-history', verifyToken, aiController.getFridgeHistory);
+router.get('/ai/fridge-history/:id', verifyToken, aiController.getFridgeHistoryEntry);
+router.delete('/ai/fridge-history/:id', verifyToken, aiController.deleteFridgeHistoryEntry);
 
 /**
  * POST /api/ai/distribute-dishes
