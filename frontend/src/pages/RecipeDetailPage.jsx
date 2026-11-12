@@ -1,6 +1,6 @@
 import { useRequireLogin } from "../components/AuthPrompt";
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useLocation, useParams, useNavigate, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -8,7 +8,7 @@ import { StepTimer } from '../components/CookingTimers';
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import DeleteSuccessModal from "../components/DeleteSuccessModal";
 import api, { getImageUrl } from "../services/api";
-import {applySeo, recipeSeo, routeSeo} from "../services/seo.mjs";
+import {applySeo, imageUrl, recipePath, recipeSeo, recipeStepName, routeSeo} from "../services/seo.mjs";
 import {
   getRecipeByIdApi,
   submitReviewApi,
@@ -28,6 +28,7 @@ import {
 const RecipeDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { pathname, search, hash } = useLocation();
   const requireLogin = useRequireLogin();
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -149,9 +150,15 @@ const RecipeDetailPage = () => {
   }, [id, recipe, missingTimers, timerErrorMessage]);
 
   useEffect(() => {
-    if(recipe && String(recipe.id) === String(id)) applySeo(recipeSeo(recipe));
-    else if(!loading) applySeo({...routeSeo(`/recipe/${id}`), title:"Không tìm thấy công thức | CulinShare", noindex:true});
-  }, [recipe,id,loading]);
+    if(recipe && String(recipe.id) === String(id)) applySeo(recipeSeo(recipe, url => imageUrl(getImageUrl(url))));
+    else if(!loading) applySeo({...routeSeo(pathname), title:"Không tìm thấy công thức | CulinShare", noindex:true});
+  }, [recipe,id,loading,pathname]);
+
+  useEffect(() => {
+    if (!recipe || String(recipe.id) !== id || recipe.status !== 'published') return;
+    const path = recipePath(recipe);
+    if (pathname !== path) navigate({ pathname: path, search, hash }, { replace: true });
+  }, [recipe, id, pathname, search, hash, navigate]);
 
   const handleIngredientToggle = (idx) => {
     setCheckedIngredients((prev) =>
@@ -426,7 +433,7 @@ const RecipeDetailPage = () => {
                       {step.step_number || (idx + 1)}
                     </div>
                     <div className="flex-grow">
-                      <h3 className="font-label-md text-primary mb-2 uppercase font-bold">Bước {step.step_number || (idx + 1)}</h3>
+                      <h3 className="font-label-md text-primary mb-2 font-bold">{recipeStepName(step.instruction) || `Bước ${step.step_number || (idx + 1)}`}</h3>
                       <p className="text-on-surface mb-4 leading-relaxed">{step.instruction}</p>
                       {step.image_url && (
                         <img

@@ -3,7 +3,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {loadEnv} from 'vite';
 import {ABOUT_INTRO,ABOUT_SECTIONS} from '../src/services/aboutContent.mjs';
-import {SITE_URL,SITE_NAME,HOME_DESCRIPTION,PUBLIC_PAGES,PRIVATE_PAGES,routeSeo,recipeSeo,categorySeo,postSeo,escapeHtml as e,jsonLd} from '../src/services/seo.mjs';
+import {SITE_URL,SITE_NAME,HOME_DESCRIPTION,PUBLIC_PAGES,PRIVATE_PAGES,routeSeo,recipePath,recipeSeo,categorySeo,postSeo,escapeHtml as e,imageUrl,jsonLd} from '../src/services/seo.mjs';
 
 const frontend=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const dist=path.join(frontend,'dist');
@@ -31,7 +31,7 @@ export function renderHtml(template,meta,content=''){
   ].join('\n');
   return head.replace('</head>',tags+'\n</head>').replace('<div id="root"></div>',`<div id="root">${content}</div>`);
 }
-const links=items=>`<ul>${items.map(item=>`<li><a href="/recipe/${Number(item.id)}">${e(item.title)}</a></li>`).join('')}</ul>`;
+const links=items=>`<ul>${items.map(item=>`<li><a href="${e(recipePath(item))}">${e(item.title)}</a></li>`).join('')}</ul>`;
 const shell=body=>`<main style="max-width:960px;margin:40px auto;padding:24px;font-family:system-ui;line-height:1.7"><nav><a href="/">CulinShare – Bếp Nhà Mình</a> · <a href="/search">Công thức</a> · <a href="/community">Cộng đồng</a></nav>${body}</main>`;
 async function writePage(url,meta,body){
   const filename=url==='/'?'index.html':url.slice(1)+'/index.html';
@@ -70,9 +70,23 @@ for(let i=0;i<recipes.length;i+=4){
     try{
       const {data:recipe}=await getJson(`/api/recipes/${Number(item.id)}`);
       if(!recipe||recipe.status!=='published'||Number(recipe.id)!==Number(item.id))return;
-      const meta=recipeSeo(recipe);
-      const body=`<article><h1>${e(recipe.title)}</h1><p>${e(recipe.description)}</p>${meta.schema.image?`<img src="${e(meta.schema.image[0])}" alt="${e(recipe.title)}" style="max-width:100%">`:''}<p>Tác giả: ${e(recipe.author_name || 'CulinShare')}</p><p>Chuẩn bị: ${Number(recipe.prep_time_minutes)||0} phút · Nấu: ${Number(recipe.cook_time_minutes)||0} phút · Khẩu phần: ${e(recipe.servings || '')}</p><h2>Nguyên liệu</h2><ul>${meta.schema.recipeIngredient.map(text=>`<li>${e(text)}</li>`).join('')}</ul><h2>Cách làm</h2><ol>${meta.schema.recipeInstructions.map(step=>`<li>${e(step.text)}</li>`).join('')}</ol></article>`;
-      await writePage(`/recipe/${Number(recipe.id)}`,meta,body);urls.push(`/recipe/${Number(recipe.id)}`);snapshots++;
+      const meta = recipeSeo(recipe, url => imageUrl(url, api));
+      const { schema } = meta;
+      const steps = schema.recipeInstructions.map(step => `<li>
+        ${step.name ? `<h3>${e(step.name)}</h3>` : ''}
+        <p>${e(step.text)}</p>
+        ${step.image ? `<img src="${e(step.image)}" alt="${e(step.name || '')}" loading="lazy" style="max-width:100%">` : ''}
+      </li>`).join('');
+      const body=`<article><h1>${e(recipe.title)}</h1><p>${e(recipe.description)}</p>${schema.image?`<img src="${e(schema.image[0])}" alt="${e(recipe.title)}" style="max-width:100%">`:''}<p>Tác giả: ${e(recipe.author_name || 'CulinShare')}</p>
+      ${schema.recipeCategory ? `<p>Danh mục: ${e(schema.recipeCategory)}</p>` : ''}
+      <p>${schema.prepTime ? `Chuẩn bị: ${e(recipe.prep_time_minutes ?? recipe.prepTimeMinutes)} phút · ` : ''}Nấu: ${Number(recipe.cook_time_minutes)||0} phút · Khẩu phần: ${e(recipe.servings || '')}</p><h2>Nguyên liệu</h2><ul>${schema.recipeIngredient.map(text=>`<li>${e(text)}</li>`).join('')}</ul><h2>Cách làm</h2><ol>${steps}</ol></article>`;
+      const url = recipePath(recipe);
+      await writePage(url, meta, body);
+      const legacyUrl = `/recipe/${Number(recipe.id)}`;
+      if (legacyUrl !== url) {
+        await writePage(legacyUrl, {...meta, schema: null}, `<h1>${e(recipe.title)}</h1><a href="${e(url)}">Xem công thức</a>`);
+      }
+      urls.push(url);snapshots++;
     }catch(error){console.warn(`SEO: bỏ snapshot công thức ${Number(item.id)} (${error.message}).`);}
   }));
 }

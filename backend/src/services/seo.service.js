@@ -1,8 +1,14 @@
 const SITE_URL = 'https://bepnhaminh.page';
 const xml = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[char]));
+function recipePath({ id, title }) {
+    const slug = String(title || '').toLowerCase().normalize('NFD')
+        .replace(/\p{M}/gu, '').replace(/đ/g, 'd')
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return `/recipe/${id}${slug ? '/' + slug : ''}`;
+}
 function sitemap(catalog) {
     const entries = ['/', '/search', '/community', '/chefs', '/about', '/contact', '/terms', '/privacy', '/cookies'].map(path => ({ path }));
-    for (const recipe of catalog.recipes) entries.push({ path: `/recipe/${recipe.id}`, modified: recipe.updated_at });
+    for (const recipe of catalog.recipes) entries.push({ path: recipePath(recipe), modified: recipe.updated_at });
     for (const category of catalog.categories) entries.push({ path: `/category/${encodeURIComponent(category.slug)}`, modified: category.updated_at });
     for (const post of catalog.posts) entries.push({ path: `/community/posts/${post.id}`, modified: post.updated_at });
     if (entries.length > 50000) throw new Error('Sitemap vượt 50.000 URL; cần chia sitemap index.');
@@ -13,7 +19,7 @@ function sitemap(catalog) {
 }
 async function catalog(pool) {
     const [[recipes], [categories], [posts]] = await Promise.all([
-        pool.query("SELECT id, updated_at FROM recipes WHERE status = 'published' ORDER BY id"),
+        pool.query("SELECT id, title, updated_at FROM recipes WHERE status = 'published' ORDER BY id"),
         pool.query('SELECT id, name, slug, description, image_url, updated_at FROM categories WHERE slug IS NOT NULL AND slug <> \'\' ORDER BY id'),
         pool.query("SELECT p.id, p.updated_at FROM community_posts p JOIN users u ON u.id = p.author_id WHERE p.status = 'published' AND p.deleted_at IS NULL AND NOT (LEFT(u.username,15) = 'community_demo_' AND u.email LIKE 'community.%@example.invalid') ORDER BY p.id"),
     ]);

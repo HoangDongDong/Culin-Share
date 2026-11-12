@@ -1,3 +1,4 @@
+import { recipePath } from "../../services/seo.mjs";
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -91,7 +92,7 @@ export default function CommunityPost({ post, user, requireLogin, onChange, onRe
     {post.title && <h3 className="px-6 pt-5 font-bold text-lg text-stone-900">{post.title}</h3>}
     <p className="community-post-content">{post.content}</p>
     {post.media.length > 0 && <div className={`community-post-media count-${post.media.length}`}>{post.media.map((media, index) => <button type="button" key={media.id} onClick={() => setLightbox(media)} aria-label={`Xem ảnh ${index + 1} của bài viết`}><img src={getImageUrl(media.media_url)} alt={`Ảnh món ăn do ${author} chia sẻ`} loading="lazy" /></button>)}</div>}
-    {post.recipes.length > 0 && <div className="community-attached-recipes">{post.recipes.map(recipe => <Link to={`/recipe/${recipe.id}`} key={recipe.id}>
+    {post.recipes.length > 0 && <div className="community-attached-recipes">{post.recipes.map(recipe => <Link to={recipePath(recipe)} key={recipe.id}>
       {recipe.cover_image_url ? <img src={getImageUrl(recipe.cover_image_url)} alt="" loading="lazy" /> : <span className="material-symbols-outlined">menu_book</span>}
       <div><small>CÔNG THỨC TRÊN CULINSHARE</small><strong>{recipe.title}</strong><span>{recipe.total_minutes} phút chế biến</span></div><span className="material-symbols-outlined">arrow_outward</span>
     </Link>)}</div>}

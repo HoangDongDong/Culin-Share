@@ -1,3 +1,4 @@
+import { recipePath } from "../services/seo.mjs";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
@@ -260,7 +261,7 @@ const SavedRecipesPage = () => {
                       {/* Cooksnap action if in 'cooked' collection */}
                       {currentCol === "cooked" && (
                         <Link
-                          to={`/recipe/${recipe.id}#cooksnaps`}
+                          to={recipePath(recipe) + "#cooksnaps"}
                           className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1 transition-all shadow-xs"
                           title="Đăng ảnh thành phẩm cho món này"
                         >

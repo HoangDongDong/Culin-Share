@@ -1,3 +1,4 @@
+import { recipePath } from "../services/seo.mjs";
 import { useRequireLogin } from "../components/AuthPrompt";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -661,7 +662,7 @@ const SmartFridgePage = ({ token }) => {
                     {recipe.source === "culinshare" ? (
                       <>
                         {recipe.coverImageUrl && (
-                          <Link to={`/recipe/${recipe.recipeId}`}>
+                          <Link to={recipePath({ id: recipe.recipeId, title: recipe.name })}>
                             <img src={getImageUrl(recipe.coverImageUrl)} alt={recipe.name} loading="lazy" className="w-full h-40 object-cover rounded-xl mb-3" />
                           </Link>
                         )}
@@ -761,7 +762,7 @@ const SmartFridgePage = ({ token }) => {
 
                     {/* Nút xem chi tiết */}
                     {recipe.source === "culinshare" ? (
-                      <Link to={`/recipe/${recipe.recipeId}`} className="w-full py-3 bg-primary text-white rounded-xl text-center font-bold text-sm flex items-center justify-center gap-2 shadow-sm hover:bg-primary/90 transition-all">
+                      <Link to={recipePath({ id: recipe.recipeId, title: recipe.name })} className="w-full py-3 bg-primary text-white rounded-xl text-center font-bold text-sm flex items-center justify-center gap-2 shadow-sm hover:bg-primary/90 transition-all">
                         <span className="material-symbols-outlined text-base">menu_book</span>
                         Xem công thức trên CulinShare
                       </Link>

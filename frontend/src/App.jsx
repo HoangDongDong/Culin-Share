@@ -54,7 +54,7 @@ function App() {
       <Route path="/search" element={<SearchPage />} />
       <Route path="/category/:slug" element={<CategoryPage />} />
       <Route path="/product/:id" element={<ProductDetailPage />} />
-      <Route path="/recipe/:id" element={<RecipeDetailPage />} />
+      <Route path="/recipe/:id/:slug?" element={<RecipeDetailPage />} />
       <Route path="/edit-recipe/:id" element={<ProtectedPage><EditRecipePage /></ProtectedPage>} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />

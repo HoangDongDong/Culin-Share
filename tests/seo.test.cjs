@@ -2,6 +2,17 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const seo=import('../frontend/src/services/seo.mjs');
 
+test('recipe links, canonical metadata and the live sitemap use the same descriptive URL', async () => {
+  const { recipePath, recipeSeo, routeSeo } = await seo;
+  const { sitemap } = require('../backend/src/services/seo.service.js');
+  const recipe = { id: 35075, title: 'Mì spaghetti xào tôm nấm', status: 'published' };
+  const path = '/recipe/35075/mi-spaghetti-xao-tom-nam';
+  assert.equal(recipePath(recipe), path);
+  assert.equal(recipeSeo(recipe).url, 'https://bepnhaminh.page' + path);
+  assert.equal(routeSeo(path).noindex, false);
+  assert.match(sitemap({ recipes: [recipe], categories: [], posts: [] }), /<loc>https:\/\/bepnhaminh\.page\/recipe\/35075\/mi-spaghetti-xao-tom-nam<\/loc>/);
+});
+
 test('public routes have canonical primary-domain URLs and private/search variants are noindex',async()=>{
   const {routeSeo}=await seo;
   assert.equal(routeSeo('/').url,'https://bepnhaminh.page/');
@@ -30,6 +41,26 @@ test('snapshot HTML and JSON-LD cannot break out through stored recipe content',
   assert.ok(!jsonLd({name:attack}).includes('</script>'));
   assert.equal(JSON.parse(jsonLd({name:attack})).name,attack);
   assert.equal(imageUrl('javascript:alert(1)'),undefined);
+});
+
+test('Recipe markup uses real category and step media while leaving unknown metadata absent', async () => {
+  const { imageUrl, recipeSeo } = await seo;
+  const recipe = {
+    id: 42, status: 'published', title: 'Gà luộc', prep_time_minutes: null,
+    categories: [{ name: 'Món Việt' }],
+    steps: [
+      { instruction: 'Bước 1: Luộc gà. Đợi 30 phút.', image_url: '/uploads/ga.jpg' },
+      { instruction: 'Vớt gà ra.', image_url: '' },
+    ],
+  };
+  const { schema } = recipeSeo(recipe, url => imageUrl(url, 'https://api.example.com'));
+  assert.equal(schema.recipeCategory, 'Món Việt');
+  assert.equal(schema.recipeInstructions[0].name, 'Luộc gà');
+  assert.equal(schema.recipeInstructions[0].image, 'https://api.example.com/uploads/ga.jpg');
+  assert.equal(schema.recipeInstructions[1].image, undefined);
+  assert.equal(schema.prepTime, undefined);
+  assert.equal(schema.video, undefined);
+  assert.equal(recipeSeo({ ...recipe, prep_time_minutes: 0 }).schema.prepTime, 'PT0M');
 });
 test('categories and public community posts have distinct metadata; hidden posts stay noindex',async()=>{
   const {categorySeo,postSeo}=await seo;

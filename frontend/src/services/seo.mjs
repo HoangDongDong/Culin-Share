@@ -18,13 +18,26 @@ export const plainText = value => String(value || '').replace(/<[^>]*>/g, ' ').r
 export const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 export const jsonLd = data => JSON.stringify(data).replace(/</g, '\\u003c');
 export const canonical = pathname => SITE_URL + (pathname === '/' ? '/' : pathname.replace(/\/$/, ''));
-export function imageUrl(value) {
-  try {const url = new URL(value, SITE_URL); return ['http:','https:'].includes(url.protocol) ? url.href : undefined;} catch {return undefined;}
+export function recipePath(recipe) {
+  const slug = String(recipe.title || recipe.name || '').toLowerCase().normalize('NFD')
+    .replace(/\p{M}/gu, '').replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return `/recipe/${recipe.id}${slug ? '/' + slug : ''}`;
+}
+export function imageUrl(value, base = SITE_URL) {
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  try {const url = new URL(value, base); return ['http:','https:'].includes(url.protocol) ? url.href : undefined;} catch {return undefined;}
+}
+export function recipeStepName(instruction) {
+  const text = plainText(instruction).replace(/^Bước\s+\d+\s*[:.\-–]\s*/iu, '');
+  const phrase = text.split(/[.!?;](?:\s|$)|:\s/u, 1)[0];
+  if (phrase.length <= 80) return phrase;
+  return phrase.slice(0, 80).replace(/\s+\S*$/u, '');
 }
 export function routeSeo(pathname, search = '') {
   const path = pathname.replace(/\/$/, '') || '/';
   const page = PUBLIC_PAGES[path];
-  const publicDetail = /^\/(?:recipe|chef)\/[1-9]\d*$/.test(path) || /^\/community\/posts\/[1-9]\d*$/.test(path) || /^\/category\/[^/]+$/.test(path);
+  const publicDetail = /^\/recipe\/[1-9]\d*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)?$/.test(path) || /^\/chef\/[1-9]\d*$/.test(path) || /^\/community\/posts\/[1-9]\d*$/.test(path) || /^\/category\/[^/]+$/.test(path);
   return {
     title: page?.title || SITE_NAME,
     description: page?.description || HOME_DESCRIPTION,
@@ -39,21 +52,33 @@ export function routeSeo(pathname, search = '') {
     } : null,
   };
 }
-export function recipeSeo(recipe) {
-  const base = routeSeo('/recipe/' + recipe.id);
+export function recipeSeo(recipe, resolveImage = imageUrl) {
+  const base = routeSeo(recipePath(recipe));
   if(recipe.status !== 'published') return {...base,noindex:true};
   const description = plainText(recipe.description).slice(0, 170) || `Cách làm ${recipe.title}: nguyên liệu, định lượng và hướng dẫn từng bước trên CulinShare – Bếp Nhà Mình.`;
-  const image = imageUrl(recipe.cover_image_url);
+  const image = resolveImage(recipe.cover_image_url);
+  const categories = (recipe.categories || []).map(category => plainText(category?.name ?? category)).filter(Boolean);
+  const prep = recipe.prep_time_minutes ?? recipe.prepTimeMinutes;
+  const cook = recipe.cook_time_minutes ?? recipe.cookTimeMinutes;
+  const prepTime = prep != null && prep !== '' && Number.isFinite(Number(prep)) && Number(prep) >= 0
+    ? `PT${Number(prep)}M` : undefined;
   const schema = {
     '@context':'https://schema.org', '@type':'Recipe', name:plainText(recipe.title),
     description, url:base.url, ...(image ? {image:[image]} : {}),
     ...(recipe.importInfo ? {author:{'@type':'Organization',name:recipe.importInfo.upstreamSite,url:recipe.importInfo.upstreamSite},isBasedOn:recipe.importInfo.datasetUrl} : recipe.author_name ? {author:{'@type':'Person', name:plainText(recipe.author_name)}} : {}),
     ...(recipe.created_at && Number.isFinite(Date.parse(recipe.created_at)) ? {datePublished:new Date(recipe.created_at).toISOString()} : {}),
-    ...(Number(recipe.prep_time_minutes) > 0 ? {prepTime:`PT${Number(recipe.prep_time_minutes)}M`} : {}),
-    ...(Number(recipe.cook_time_minutes) > 0 ? {cookTime:`PT${Number(recipe.cook_time_minutes)}M`} : {}),
+    ...(prepTime ? {prepTime} : {}),
+    ...(Number(cook) > 0 ? {cookTime:`PT${Number(cook)}M`} : {}),
+    ...(categories.length ? {recipeCategory:[...new Set(categories)].join(', ')} : {}),
     ...(Number(recipe.servings) > 0 ? {recipeYield:`${Number(recipe.servings)} người`} : {}),
     recipeIngredient:(recipe.ingredients || []).map(item => plainText([item.quantity,item.unit,item.name].filter(value=>value!==null&&value!==undefined).join(' '))),
-    recipeInstructions:(recipe.steps || []).map(step => ({'@type':'HowToStep',text:plainText(step.instruction)})),
+    recipeInstructions:(recipe.steps || []).flatMap(step => {
+      const text = plainText(step.instruction);
+      if (!text) return [];
+      const name = recipeStepName(step.instruction);
+      const image = resolveImage(step.image_url);
+      return [{'@type':'HowToStep', text, ...(name ? {name} : {}), ...(image ? {image} : {})}];
+    }),
   };
   // Only publish actual content fields; never invent ratings or nutritional units.
   return {...base, title:`${plainText(recipe.title)} – Cách làm và nguyên liệu | CulinShare`, description, image:image || base.image, noindex:false, schema};

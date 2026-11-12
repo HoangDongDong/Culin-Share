@@ -1,3 +1,4 @@
+import { recipePath } from "../services/seo.mjs";
 import { AuthLink, useRequireLogin } from "../components/AuthPrompt";
 import SearchSuggestions from '../components/SearchSuggestions';
 import { useState, useEffect, useRef } from "react";
@@ -249,7 +250,7 @@ const HomePage = () => {
                       key={recipe.id}
                       className="bg-white rounded-2xl border border-stone-200/80 hover:border-stone-300 overflow-hidden shadow-2xs hover:shadow-md transition-all group flex flex-col"
                     >
-                      <Link to={`/recipe/${recipe.id}`} className="relative aspect-[16/11] overflow-hidden block">
+                      <Link to={recipePath(recipe)} className="relative aspect-[16/11] overflow-hidden block">
                         <HomeImage
                           src={recipe.image}
                           alt={recipe.title}
@@ -268,7 +269,7 @@ const HomePage = () => {
                       </Link>
 
                       <div className="p-3.5 flex flex-col flex-1 justify-between">
-                        <Link to={`/recipe/${recipe.id}`} className="block">
+                        <Link to={recipePath(recipe)} className="block">
                           <h3 className="font-bold text-stone-900 text-xs sm:text-sm group-hover:text-[#ab2e10] transition-colors line-clamp-1">
                             {recipe.title}
                           </h3>
@@ -458,7 +459,7 @@ const HomePage = () => {
                   {!loading&&!weeklyTrends.length&&<p className="text-sm text-stone-500">Chưa có lượt lưu công thức trong 7 ngày qua.</p>}
                   {weeklyTrends.map((trend) => (
                     <div key={trend.id} className="flex items-center justify-between gap-3 group cursor-pointer">
-                      <Link to={"/recipe/"+trend.id} className="flex items-center gap-3">
+                      <Link to={recipePath(trend)} className="flex items-center gap-3">
                         <span className="text-sm font-bold text-[#ab2e10] w-4">
                           #{trend.rank}
                         </span>

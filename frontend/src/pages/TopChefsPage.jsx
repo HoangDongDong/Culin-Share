@@ -1,3 +1,4 @@
+import { recipePath } from "../services/seo.mjs";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "../components/Header";
@@ -177,7 +178,7 @@ const TopChefsPage = () => {
                       {activeTab === "recipes" ? (
                         <>
                           {/* Recipe Cover Image */}
-                          <Link to={`/recipe/${item.id}`} className="relative mt-2 block w-full aspect-video rounded-2xl overflow-hidden border border-outline-variant/35 shadow-inner">
+                          <Link to={recipePath(item)} className="relative mt-2 block w-full aspect-video rounded-2xl overflow-hidden border border-outline-variant/35 shadow-inner">
                             <img
                               alt={item.title}
                               src={getImageUrl(item.cover_image_url) || "https://images.unsplash.com/photo-1596797038530-2c107229654b"}
@@ -189,7 +190,7 @@ const TopChefsPage = () => {
                           </Link>
 
                           {/* Recipe Title */}
-                          <Link to={`/recipe/${item.id}`} className="mt-4 block hover:text-primary transition-colors w-full">
+                          <Link to={recipePath(item)} className="mt-4 block hover:text-primary transition-colors w-full">
                             <h3 className="font-headline-sm text-headline-sm font-bold truncate px-1">
                               {item.title}
                             </h3>
@@ -307,7 +308,7 @@ const TopChefsPage = () => {
                                 className="w-16 h-16 rounded-xl object-cover border border-outline-variant/20 flex-shrink-0"
                               />
                               <div className="truncate">
-                                <Link to={`/recipe/${item.id}`} className="font-bold text-on-surface hover:text-primary transition-colors text-body-lg block truncate">
+                                <Link to={recipePath(item)} className="font-bold text-on-surface hover:text-primary transition-colors text-body-lg block truncate">
                                   {item.title}
                                 </Link>
                                 <span className="text-xs text-on-surface-variant block mt-0.5">
@@ -336,7 +337,7 @@ const TopChefsPage = () => {
 
                             {/* Right Info: Action Button */}
                             <Link
-                              to={`/recipe/${item.id}`}
+                              to={recipePath(item)}
                               className="px-4 py-2 bg-outline-variant/10 hover:bg-primary hover:text-on-primary text-on-surface-variant font-label-md font-bold text-sm rounded-xl transition-all active:scale-95 flex-shrink-0"
                             >
                               Xem công thức

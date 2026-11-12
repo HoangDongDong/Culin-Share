@@ -1,3 +1,4 @@
+import { recipePath } from "../services/seo.mjs";
 import { useRequireLogin } from "../components/AuthPrompt";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -258,7 +259,7 @@ const ChefProfilePage = () => {
               <>
                 {/* Bento Asymmetric Item / Featured Post */}
                 <article
-                  onClick={() => navigate(`/recipe/${featuredRecipe.id}`)}
+                  onClick={() => navigate(recipePath(featuredRecipe))}
                   className="bg-surface-container-lowest rounded-xl overflow-hidden recipe-card-shadow group cursor-pointer transition-all border border-outline-variant/10 shadow-sm md:col-span-2"
                 >
                   <div className="flex flex-col md:flex-row h-full">

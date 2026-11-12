@@ -1,3 +1,4 @@
+import { recipePath } from "../services/seo.mjs";
 import { useRequireLogin } from "./AuthPrompt";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -57,7 +58,7 @@ const RecipeCard = ({ recipe, initiallySaved = false, onSavedChange }) => {
 
   return (
     <div className="mobile-recipe-card bg-surface-container-lowest rounded-2xl overflow-hidden recipe-card-shadow flex flex-col h-full border border-outline-variant/10 group transition-all duration-300">
-      <Link to={`/recipe/${recipeId}`} className="relative h-56 overflow-hidden block">
+      <Link to={recipePath({ ...recipe, id: recipeId })} className="relative h-56 overflow-hidden block">
         <img
           alt={recipe.name || recipe.title}
           src={getImageUrl(recipe.images?.[0] || recipe.image || recipe.cover_image_url || recipe.coverImageUrl) || "https://lh3.googleusercontent.com/aida-public/AB6AXuB6hAYWu85lEEG9woz8LQ78yLJjOx2n3-6LxQmkOAk75hdoTJjrj-qk-kUo7Vw7r2oODMiMjSbG_NKZ-FM5d5hihHOlert2sWBqpvyKb5LZkdKzNqNaIDS20jcqtQYLxQ1T_jd1fz2_kzMNCzdw40Z7tWHj7sH82uMO3jEgC1qYB4OC7pqxO0qwQaV9-2xHX-1DWeLZfqbpAF6VQQ1I96j-3pa7pYJzxqemDJHg7AllTPuaVk8bRQ0d1msjX88SZQ27QdIIHI7riw"}
@@ -93,7 +94,7 @@ const RecipeCard = ({ recipe, initiallySaved = false, onSavedChange }) => {
           )}
         </div>
         
-        <Link to={`/recipe/${recipeId}`} className="block">
+        <Link to={recipePath({ ...recipe, id: recipeId })} className="block">
           <h3 className="font-headline-sm text-headline-sm text-on-surface mb-2 group-hover:text-primary transition-colors line-clamp-2">
             {recipe.name || recipe.title}
           </h3>
